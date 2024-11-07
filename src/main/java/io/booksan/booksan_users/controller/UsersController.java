@@ -1,18 +1,21 @@
 package io.booksan.booksan_users.controller;
 
+import java.io.IOException;
+import java.net.URLEncoder;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.NoSuchElementException;
 
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
-import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -25,10 +28,11 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.booksan.booksan_users.config.auth.PrincipalDetails;
+import io.booksan.booksan_users.config.jwt.JWTUtil;
 import io.booksan.booksan_users.dto.UsersDTO;
-import io.booksan.booksan_users.exception.ExistMemberException;
 import io.booksan.booksan_users.service.UsersService;
 import io.booksan.booksan_users.vo.UsersVO;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -39,136 +43,162 @@ import lombok.extern.slf4j.Slf4j;
 public class UsersController {
 	
 	private final UsersService usersService;
+	private final JWTUtil jwtUtil;
 	
-	//회원 소셜 로그인
-	@PostMapping("/auth/socialLogin")
-	public Map<String, String> socialLogin(@RequestBody UsersDTO usersDTO) {
-        Map<String, String> loginResponse = new HashMap<>();
-        String code = usersDTO.getUid(); // 클라이언트에서 전달된 카카오 코드
-        log.info("Received Kakao code from client: " + code);
-        // 유효성 검사
-        if (code == null || code.isEmpty()) {
-            loginResponse.put("status", "error");
-            loginResponse.put("message", "유효하지 않은 카카오 코드입니다.");
-            return loginResponse;
-        }
-        log.info("Received Kakao code from client: " + code);
-        // 카카오 콜백 URI로 리다이렉트 (code를 통해 토큰 요청)
-        loginResponse.put("redirect_uri", "/auth/kakao/callback?code=" + code);
-        return loginResponse;
-    }
+	@GetMapping("/auth/kakao/login")
+	public void kakaoLogin(HttpServletResponse response) throws IOException {
+	    String kakaoAuthUrl = String.format("https://kauth.kakao.com/oauth/authorize?client_id=%s&redirect_uri=%s&response_type=code",
+	        "cedf95693b178edc09b8aa5db5774ee1", // 카카오 앱 키
+	        URLEncoder.encode("http://localhost:8081/api/users/auth/kakao/callback", "UTF-8")
+	    );
+	    response.sendRedirect(kakaoAuthUrl);
+	}
 	
-	// 카카오 콜백 - 액세스 토큰으로 사용자 정보를 요청하고 처리하는 메소드
+	// 카카오 콜백 - 액세스 토큰으로 사용자 정보를 요청하고 처리
     @GetMapping("/auth/kakao/callback")
-    public String kakaoCallback(@RequestParam("code")String code) {
-    	
-    	log.info("Received code from Kakao 코드받음: " + code);
-    	//RestTemplate
-        RestTemplate restTemplate = new RestTemplate();
-        // HttpHeader 오브젝트 생성
-        HttpHeaders headers = new HttpHeaders();
-        headers.add("Content-type", "application/x-www-form-urlencoded;charset=utf-8");
+    public void kakaoCallback(@RequestParam("code") String code, HttpServletResponse response) throws IOException {
+        log.info("Kakao 코드받음: " + code);
         
-        // 액세스 토큰 요청 (HttpBody 오브젝트 생성)
-        MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
-        params.add("grant_type", "authorization_code");
-        params.add("client_id", "cedf95693b178edc09b8aa5db5774ee1"); // 실제 카카오 앱 키 입력
-        params.add("redirect_uri", "http://localhost:8081/api/users/auth/kakao/callback"); // 실제 리다이렉트 URI 입력
-        params.add("code", code);
-        log.info("Requesting access token with code: " + code);
-        // HttpHeader와 HttpBody를 하나의 오브젝트에 담기
-        HttpEntity<MultiValueMap<String, String>> kakaoTokenRequest = new HttpEntity<>(params, headers);
-        
-        
-        ResponseEntity<String> tokenResponse = restTemplate.exchange(
+        try {
+            //RestTemplate 설정
+            RestTemplate restTemplate = new RestTemplate();
+            HttpHeaders headers = new HttpHeaders();
+            headers.add("Content-type", "application/x-www-form-urlencoded;charset=utf-8");
+            
+            // 액세스 토큰 요청
+            MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
+            params.add("grant_type", "authorization_code");
+            params.add("client_id", "cedf95693b178edc09b8aa5db5774ee1");
+            params.add("redirect_uri", "http://localhost:8081/api/users/auth/kakao/callback");
+            params.add("code", code);
+            
+            HttpEntity<MultiValueMap<String, String>> kakaoTokenRequest = 
+                new HttpEntity<>(params, headers);
+            
+            ResponseEntity<String> tokenResponse = restTemplate.exchange(
                 "https://kauth.kakao.com/oauth/token",
                 HttpMethod.POST,
                 kakaoTokenRequest,
                 String.class
-        );
-        
-        log.info("https://kauth.kakao.com/oauth/token의 body = " + tokenResponse.getBody());
-        log.info("Requesting access token with code: " + code);
-        // 응답 결과에서 액세스 토큰 추출
-        String accessToken = null;
-        try {
-        	Map<String, Object> tokenInfo = new ObjectMapper().readValue(tokenResponse.getBody(), Map.class);
-        	accessToken = (String) tokenInfo.get("access_token");
-        } catch (JsonProcessingException e) {
-            e.printStackTrace();
-        }
-        log.info("Requesting access token with code: " + code);
-        RestTemplate rt2 = new RestTemplate();
-        
-        // 사용자 정보 요청
-        HttpHeaders userInfoHeaders = new HttpHeaders();
-        userInfoHeaders.add("Authorization", "Bearer " + accessToken);
-        userInfoHeaders.add("Content-type", "application/x-www-form-urlencoded;charset=utf-8");
-        
-        HttpEntity<MultiValueMap<String, String>> kakaoProfileRequest = new HttpEntity<>(userInfoHeaders);
-        
-        // Http 요청하기 - Post방식으로 - 그리고 response 변수의 응답 받음.
-        ResponseEntity<String> profileResponse = rt2.exchange(
+            );
+            
+            // 액세스 토큰 추출
+            Map<String, Object> tokenInfo = new ObjectMapper().readValue(tokenResponse.getBody(), Map.class);
+            String accessToken = (String) tokenInfo.get("access_token");
+            
+            // 사용자 정보 요청
+            HttpHeaders userInfoHeaders = new HttpHeaders();
+            userInfoHeaders.add("Authorization", "Bearer " + accessToken);
+            userInfoHeaders.add("Content-type", "application/x-www-form-urlencoded;charset=utf-8");
+            
+            HttpEntity<MultiValueMap<String, String>> kakaoProfileRequest = 
+                new HttpEntity<>(userInfoHeaders);
+            
+            ResponseEntity<String> profileResponse = restTemplate.exchange(
                 "https://kapi.kakao.com/v2/user/me",
                 HttpMethod.POST,
                 kakaoProfileRequest,
                 String.class
-        );
-        log.info("카카오 정보:" , profileResponse.getBody());
-        
-        // 이메일 추출
-        String email = usersService.extractUserEmail(profileResponse.getBody());
-        if (email == null) {
-        	log.error("Email extraction failed from profile response.");
-            return "redirect:/error"; // 이메일 추출 실패 시 오류 처리
-        }
-        
-        // 사용자 정보를 기반으로 회원가입 또는 로그인 처리
-        UsersVO kakaoUser = UsersVO.builder()
-                .email(email)
-                .roleId(1)
-                .uid(code)
-                .build();
-
-        //가입자 비가입자 체크 처리
-        try {
-            usersService.insertUser(kakaoUser, code);
-            log.info("기존 회원이 아니기에 자동 회원가입을 진행함");
-        } catch (ExistMemberException e) {
-        	log.info("기존에 회원 가입된 경우 다음으로 진행함");
+            );
+            
+            log.info("카카오 사용자 정보: " + profileResponse.getBody());
+            
+            // 이메일 추출
+            String email = usersService.extractUserEmail(profileResponse.getBody());
+            if (email == null) {
+                response.sendRedirect("http://localhost:5173/login?error=email_not_found");
+                return;
+            }
+            
+            try {
+                // 기존 회원인지 확인
+                UsersVO existingUser = usersService.findByEmail(email);
+                
+                // 기존 회원이면 JWT 토큰 발급 후 메인으로
+                Map<String, String> tokens = jwtUtil.generateTokenSet(Map.of(
+                        "email", existingUser.getEmail(),
+                        "nickname", existingUser.getNickname()
+                ));
+                log.info("JWT 토큰 생성을 위한 tokens: {}", tokens);
+                
+                
+                response.sendRedirect("http://localhost:5173/chat/roomList?token=" + 
+                	"accessToken=" + URLEncoder.encode(tokens.get("accessToken"), "UTF-8") +
+                    "&refreshToken=" + URLEncoder.encode(tokens.get("refreshToken"), "UTF-8"));
+                
+                log.info("생성된 JWT 토큰들: accessToken={}, refreshToken={}", 
+                		tokens.get("accessToken"), 
+                		tokens.get("refreshToken")
+                		);
+            } catch (NoSuchElementException e) {
+                // 신규 회원이면 회원가입 페이지로
+                response.sendRedirect("http://localhost:5173/signup?email=" + 
+                    URLEncoder.encode(email, "UTF-8") + "&code=" +
+                    URLEncoder.encode(code, "UTF-8"));
+            }
+            
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("카카오 로그인 처리 중 오류", e);
+            response.sendRedirect("http://localhost:5173/login?error=auth_failed");
         }
-        log.info("자동 로그인을 진행합니다.");
-        
-        // 로그인 처리
-        PrincipalDetails principalDetails = new PrincipalDetails(kakaoUser);
-        Authentication authentication = new UsernamePasswordAuthenticationToken(
-        		principalDetails, 
-        		null, // 토큰 인증시 패스워드는 알수 없어 null 값을 전달하는 것임 
-        		principalDetails.getAuthorities()); //사용자가 소유한 역할 권한을 전달한다
-        // 강제로 시큐리티의 세션에 접근하여 값 저장
-        SecurityContextHolder.getContext().setAuthentication(authentication);
-        
-        return "로그인 성공";
-
     }
-	
-
+    
+    // 회원 로그아웃
 	@PostMapping("/logout")
-	public String logout() {
-	    SecurityContextHolder.clearContext(); // 세션 초기화
-	    return "redirect:/home"; // 홈페이지로 리다이렉트
+	public ResponseEntity<Map<String, Object>> logout() {
+		SecurityContextHolder.clearContext();
+	    Map<String, Object> response = new HashMap<>();
+	    response.put("status", "success");
+	    response.put("message", "Logout successful");
+	    return ResponseEntity.ok(response);
 	}
 	
-	public String jwtAuth() {
-		return "미구현";
+	// 회원가입 폼
+	@PostMapping("/signup")
+    public ResponseEntity<Map<String, Object>> signupForm(@RequestBody UsersDTO usersDTO) {
+		 log.info("회원가입 요청 - email: {}, uid: {}, nickname: {}", 
+			        usersDTO.getEmail(), usersDTO.getUid(), usersDTO.getNickname());
+        
+        try {
+            // 닉네임을 포함한 사용자 정보 저장
+            if (usersDTO.getNickname() == null || usersDTO.getNickname().isEmpty()) {
+                throw new IllegalArgumentException("닉네임은 필수입니다.");
+            }
+
+            // UsersVO 객체 생성
+            UsersVO newUser = UsersVO.builder()
+                    .email(usersDTO.getEmail()) // 이메일 설정
+                    .uid(usersDTO.getUid())     // UID 설정
+                    .nickname(usersDTO.getNickname()) // 닉네임 설정
+                    .roleId(1)                  // 기본 역할 ID
+                    .build();
+            
+            
+            // 사용자 정보 삽입
+            usersService.insertUser(newUser, usersDTO.getUid());
+            
+            // JWT 토큰 생성
+            Map<String, String> tokens = jwtUtil.generateTokenSet(Map.of(
+                "email", newUser.getEmail(),
+                "nickname", newUser.getNickname()
+            ));
+            
+            log.info("생성된 JWT 토큰들: accessToken={}, refreshToken={}", 
+                    tokens.get("accessToken"), 
+                    tokens.get("refreshToken")
+            );
+            
+            return ResponseEntity.ok(Map.of(
+                    "status", "success",
+                    "accessToken", tokens.get("accessToken"),
+                    "refreshToken", tokens.get("refreshToken"),
+                    "message", "회원가입 성공"
+                ));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(
+                    "status", "error",
+                    "message", e.getMessage()
+                ));
+        }
 	}
-	
-	@GetMapping("/test")
-    public String testConnection() {
-        log.info("Test connection endpoint called");
-        return "Connection successful";
-    }
-	
 }
