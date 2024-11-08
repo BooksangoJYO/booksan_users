@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+      PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+      "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="io.booksan.booksan_users.dao.UsersDAO">
+	
+	 <!-- 이메일로 사용자 정보 조회 -->
+	 <select id="findByEmail" parameterType="String" resultType="io.booksan.booksan_users.vo.UsersVO">
+        SELECT * 
+        FROM USERS
+        WHERE email = #{email}
+     </select>
+     
+     <!-- 사용자 정보 삽입 -->
+     <insert id="insertUser" parameterType="io.booksan.booksan_users.vo.UsersVO">
+        INSERT INTO USERS (uid, email, role_id, nickname) 
+        VALUES (#{uid}, #{email}, #{roleId}, #{nickname})
+     </insert>
+     <!-- 사용자 정보 업데이트 -->
+     <update id="updateUser" parameterType="io.booksan.booksan_users.vo.UsersVO">
+	    UPDATE USERS 
+	    SET nickname = #{nickname}
+	    WHERE uid = #{uid}
+	 </update>
+	 
+</mapper>
