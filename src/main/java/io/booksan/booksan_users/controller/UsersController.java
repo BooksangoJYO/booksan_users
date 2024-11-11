@@ -311,76 +311,76 @@ public class UsersController {
 	}
 	
 	
-	private Map<String, Object> validateAccessToken(@RequestHeader Map<String,String> headers) throws AccessTokenException {
-        // 쿠키에서 토큰 확인
-		log.info("***access token check***" + headers.toString());
-        String accessToken = headers.get("accesstoken");
-        String refreshToken = headers.get("refreshtoken");
-
-
-        if (accessToken == null) {
-            throw new AccessTokenException(AccessTokenException.TOKEN_ERROR.UNACCEPT);
-        }
-
-        try {
-            return jwtUtil.validateToken(accessToken);
-        } catch(MalformedJwtException malformedJwtException) {
-            log.error("MalformedJwtException----------------------");
-            throw new AccessTokenException(AccessTokenException.TOKEN_ERROR.MALFORM);
-        } catch(SignatureException signatureException) {
-            log.error("SignatureException----------------------");
-            throw new AccessTokenException(AccessTokenException.TOKEN_ERROR.BADSIGN);
-        } catch(ExpiredJwtException expiredJwtException) {
-        	// accessToken이 만료된 경우 refreshToken 확인
-            log.error("ExpiredJwtException----------------------");
-            if (refreshToken != null) {
-                try {
-                    // refresh token 유효성 검증
-                    Map<String, Object> refreshClaims = jwtUtil.validateToken(refreshToken);
-                    
-                    // access token 재발급
-                    String newAccessToken = jwtUtil.regenerateAccessToken(refreshClaims);
-                    
-                    // 새로운 access token을 쿠키에 설정
-                    Cookie newAccessTokenCookie = new Cookie("accessToken", newAccessToken);
-                    newAccessTokenCookie.setHttpOnly(true);
-                    newAccessTokenCookie.setSecure(true);
-                    newAccessTokenCookie.setPath("/");
-                    newAccessTokenCookie.setMaxAge(1800); // 30분
-                    
-                    // 새로운 토큰으로 검증 진행
-                    return jwtUtil.validateToken(newAccessToken);
-                } catch (Exception e) {
-                    throw new AccessTokenException(AccessTokenException.TOKEN_ERROR.EXPIRED);
-                }
-            }
-            throw new AccessTokenException(AccessTokenException.TOKEN_ERROR.EXPIRED);
-        }
-    }
-    
-	@PostMapping("/checkToken")
-    public ResponseEntity<String> setAuthentication(@RequestHeader Map<String,String> headers){
-		try {
-	    	Map<String, Object> payload = validateAccessToken(headers);
-	        String email = (String)payload.get("email");
-	        log.info("***email은***"+email);
-	        if(email != null) {
-	        	// email에 대한 시큐리티 로그인 객체를 얻는다 
-	            UserDetails userDetails = principalDetailsService.loadUserByUsername(email);
-	            // userDetails 객체를 사용하여 인증객체로 생성한다  
-	            UsernamePasswordAuthenticationToken authentication =
-	                    new UsernamePasswordAuthenticationToken(
-	                        userDetails, null, userDetails.getAuthorities());
-	            // 스프링 시큐리티에 인증객체를 설정한다 
-	            SecurityContextHolder.getContext().setAuthentication(authentication);
-	            return ResponseEntity.ok(email);
-	        }
-	        else return ResponseEntity.ok(null);
-		}catch(Exception e) {
-			e.printStackTrace();
-			return ResponseEntity.ok(null);
-		}
-  
-    }
+//	private Map<String, Object> validateAccessToken(@RequestHeader Map<String,String> headers) throws AccessTokenException {
+//        // 쿠키에서 토큰 확인
+//		log.info("***access token check***" + headers.toString());
+//        String accessToken = headers.get("accesstoken");
+//        String refreshToken = headers.get("refreshtoken");
+//
+//
+//        if (accessToken == null) {
+//            throw new AccessTokenException(AccessTokenException.TOKEN_ERROR.UNACCEPT);
+//        }
+//
+//        try {
+//            return jwtUtil.validateToken(accessToken);
+//        } catch(MalformedJwtException malformedJwtException) {
+//            log.error("MalformedJwtException----------------------");
+//            throw new AccessTokenException(AccessTokenException.TOKEN_ERROR.MALFORM);
+//        } catch(SignatureException signatureException) {
+//            log.error("SignatureException----------------------");
+//            throw new AccessTokenException(AccessTokenException.TOKEN_ERROR.BADSIGN);
+//        } catch(ExpiredJwtException expiredJwtException) {
+//        	// accessToken이 만료된 경우 refreshToken 확인
+//            log.error("ExpiredJwtException----------------------");
+//            if (refreshToken != null) {
+//                try {
+//                    // refresh token 유효성 검증
+//                    Map<String, Object> refreshClaims = jwtUtil.validateToken(refreshToken);
+//                    
+//                    // access token 재발급
+//                    String newAccessToken = jwtUtil.regenerateAccessToken(refreshClaims);
+//                    
+//                    // 새로운 access token을 쿠키에 설정
+//                    Cookie newAccessTokenCookie = new Cookie("accessToken", newAccessToken);
+//                    newAccessTokenCookie.setHttpOnly(true);
+//                    newAccessTokenCookie.setSecure(true);
+//                    newAccessTokenCookie.setPath("/");
+//                    newAccessTokenCookie.setMaxAge(1800); // 30분
+//                    
+//                    // 새로운 토큰으로 검증 진행
+//                    return jwtUtil.validateToken(newAccessToken);
+//                } catch (Exception e) {
+//                    throw new AccessTokenException(AccessTokenException.TOKEN_ERROR.EXPIRED);
+//                }
+//            }
+//            throw new AccessTokenException(AccessTokenException.TOKEN_ERROR.EXPIRED);
+//        }
+//    }
+//    
+//	@PostMapping("/checkToken")
+//    public ResponseEntity<String> setAuthentication(@RequestHeader Map<String,String> headers){
+//		try {
+//	    	Map<String, Object> payload = validateAccessToken(headers);
+//	        String email = (String)payload.get("email");
+//	        log.info("***email은***"+email);
+//	        if(email != null) {
+//	        	// email에 대한 시큐리티 로그인 객체를 얻는다 
+//	            UserDetails userDetails = principalDetailsService.loadUserByUsername(email);
+//	            // userDetails 객체를 사용하여 인증객체로 생성한다  
+//	            UsernamePasswordAuthenticationToken authentication =
+//	                    new UsernamePasswordAuthenticationToken(
+//	                        userDetails, null, userDetails.getAuthorities());
+//	            // 스프링 시큐리티에 인증객체를 설정한다 
+//	            SecurityContextHolder.getContext().setAuthentication(authentication);
+//	            return ResponseEntity.ok(email);
+//	        }
+//	        else return ResponseEntity.ok(null);
+//		}catch(Exception e) {
+//			e.printStackTrace();
+//			return ResponseEntity.ok(null);
+//		}
+//  
+//    }
 
 }
