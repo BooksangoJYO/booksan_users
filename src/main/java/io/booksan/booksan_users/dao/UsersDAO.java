@@ -14,12 +14,13 @@ public interface UsersDAO {
     int insertUser(UsersVO usersVO);
     // 사용자 정보 업데이트
     int updateUser(UsersVO usersVO);
-    // UID로 사용자 조회
-    UsersVO findByUid(@Param("uid") String uid);
+//    // UID로 사용자 조회
+//    UsersVO findByUid(@Param("uid") String uid);
     // 마지막 로그인 시간 업데이트
     int updateMemberLastLogin(@Param("uid") String uid);
     // 로그인 카운트 초기화
     int loginCountClear(@Param("uid") String uid);
-
+    // 닉네임 중복검사
+    UsersVO findByNickname(String nickname);
 
 }

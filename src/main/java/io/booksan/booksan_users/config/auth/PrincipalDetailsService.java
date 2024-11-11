@@ -16,11 +16,12 @@ public class PrincipalDetailsService implements UserDetailsService {
 	final private UsersDAO usersDAO;
 
 	@Override
-	public UserDetails loadUserByUsername(String uid) throws UsernameNotFoundException {
-		System.out.println("PrincipalDetailsService : 진입");
-		UsersVO user = usersDAO.findByUid(uid);
+	public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
+		UsersVO user = usersDAO.findByEmail(email);
 		
-		System.out.println("PrincipalDetailsService : user -> " + user);
+        if (user == null) {
+            throw new UsernameNotFoundException("User not found with email: " + email);
+        }
 
 		return new PrincipalDetails(user);
 	}
