@@ -1,5 +1,6 @@
 package io.booksan.booksan_users.service;
 
+import java.util.Date;
 import java.util.NoSuchElementException;
 import java.util.Objects;
 
@@ -9,6 +10,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.booksan.booksan_users.dao.UsersDAO;
+import io.booksan.booksan_users.dto.UsersDTO;
 import io.booksan.booksan_users.exception.ExistMemberException;
 import io.booksan.booksan_users.vo.UsersVO;
 import lombok.RequiredArgsConstructor;
@@ -64,11 +66,23 @@ public class UsersService {
     }
     
     public UsersVO findByEmail(String email) {
-        UsersVO user = usersDAO.findByEmail(email);
-        if(user == null) {
-            throw new NoSuchElementException("User not found with email: " + email);
-        }
-        return user;
+    	return usersDAO.findByEmail(email);
     }
+    
+    public int updateUser(UsersVO user) {
+        return usersDAO.updateUser(user);
+    }
+    
+	public int disableUser(String email) {
+	    UsersVO user = findByEmail(email);
+	    user.setDisabled('Y');  // 비활성화 
+	    user.setSignoutDate(new Date()); // 탈퇴일자 설정
+	    return usersDAO.updateUser(user);
+	}
+
+	public boolean isNicknameUsed(String nickname) {
+		return usersDAO.findByNickname(nickname) != null;
+	}
+
 	
 }

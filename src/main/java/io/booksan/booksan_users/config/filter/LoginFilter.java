@@ -41,7 +41,7 @@ public class LoginFilter extends AbstractAuthenticationProcessingFilter {
             Map<String, Object> claim = Map.of("uid", authentication.getName());
             
             // generateTokenSet 사용
-            Map<String, String> tokens = jwtUtil.generateTokenSet(claim);
+            Map<String, String> tokens = jwtUtil.createLoginTokens(claim);
             
             // json 응답
             objectMapper.writeValue(response.getWriter(), tokens);

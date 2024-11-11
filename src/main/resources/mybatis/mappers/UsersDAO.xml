@@ -6,10 +6,10 @@
 <mapper namespace="io.booksan.booksan_users.dao.UsersDAO">
 	
 	 <!-- 이메일로 사용자 정보 조회 -->
-	 <select id="findByEmail" parameterType="String" resultType="io.booksan.booksan_users.vo.UsersVO">
+	 <select id="findByEmail" resultType="io.booksan.booksan_users.vo.UsersVO">
         SELECT * 
         FROM USERS
-        WHERE email = #{email}
+        WHERE email = #{email}  
      </select>
      
      <!-- 사용자 정보 삽입 -->
@@ -23,5 +23,11 @@
 	    SET nickname = #{nickname}
 	    WHERE uid = #{uid}
 	 </update>
+	 
+	 <select id="findByNickname" resultType="io.booksan.booksan_users.vo.UsersVO">
+	    SELECT * 
+	    FROM USERS
+	    WHERE nickname = #{nickname}
+	 </select>
 	 
 </mapper>
