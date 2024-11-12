@@ -32,67 +32,72 @@ public class JWTUtil {
 	}
 
 	public Map<String, String> createLoginTokens(Map<String,Object> valueMap) {
-		// Access Token: 60분 유효
-        String accessToken = createToken(valueMap, 10, "ACCESS");
-        // Refresh Token: 1일 유효
-        String refreshToken = createToken(valueMap, 60, "REFRESH");
-        
-        return Map.of(
-                "accessToken", accessToken,
-                "refreshToken", refreshToken
-        );
+	    log.info("토큰 생성 시작 - valueMap: {}", valueMap);
+	    
+	    // Access Token: 1분 유효
+	    String accessToken = createToken(valueMap, 10, "ACCESS");
+	    log.info("ACCESS 토큰 생성 완료: {}", accessToken);
+	    
+	    // Refresh Token: 60분 유효
+	    String refreshToken = createToken(valueMap, 60, "REFRESH");
+	    log.info("REFRESH 토큰 생성 완료: {}", refreshToken);
+	    
+	    Map<String, String> tokens = Map.of(
+	        "accessToken", accessToken,
+	        "refreshToken", refreshToken
+	    );
+	    log.info("생성된 토큰들: {}", tokens);
+	    
+	    return tokens;
 	}
-	
-    public String createToken(Map<String, Object> valueMap, int days, String type){
 
-        log.info("generateKey...  : " + key);
+	public String createToken(Map<String, Object> valueMap, int minutes, String type) {
+	    log.info("개별 토큰 생성 시작 - type: {}, days: {}", type, minutes);
 
-        //헤더 부분
-        Map<String, Object> headers = new HashMap<>();
-        headers.put("typ","JWT");
-        headers.put("alg","HS256");
+	    //payload 부분 설정
+	    Map<String, Object> payloads = new HashMap<>();
+	    payloads.putAll(valueMap);
+	    payloads.put("type", type); // type 추가
 
-        //payload 부분 설정
-        Map<String, Object> payloads = new HashMap<>();
-        payloads.putAll(valueMap);
-        payloads.put("type", type);
+	    log.info("토큰 페이로드 설정: {}", payloads);
 
-        //테스트 시에는 짧은 유효 기간
-        int time = (10) * days; //테스트는 분단위로 나중에 60*24 (일)단위변경
+	    int time = (10) * minutes;
+	    log.info("토큰 만료 시간 (분): {}", time);
 
-        //10분 단위로 조정
-        //int time = (10) * days; //테스트는 분단위로 나중에 60*24 (일)단위변경
-        
-        try {
-		        String jwtStr = Jwts.builder()
-		                .header() //헤더 부분
-		                .and()
-		                .claims(valueMap)
-		                .issuedAt(Date.from(ZonedDateTime.now().toInstant())) //JWT 발급시간 설정 
-		                .expiration(Date.from(ZonedDateTime.now().plusMinutes(time).toInstant())) //만료기간 설정 
-		                .signWith(Keys.hmacShaKeyFor(createSecretKey()), Jwts.SIG.HS256)
-		                .compact();
-		
-		        log.info("생성된 JWT ({}): {}" , type , jwtStr);
-		        return jwtStr;
-        } catch (Exception e) {
-        	log.error("JWT 생성 중 오류", e);
-        	throw new RuntimeException("Failed to generate JWT", e);
-        }
-    }
+	    try {
+	        String jwtStr = Jwts.builder()
+	            .header()
+	            .empty()
+	            .add("typ", "JWT")
+	            .and()
+	            .claims(payloads)
+	            .issuedAt(Date.from(ZonedDateTime.now().toInstant()))
+	            .expiration(Date.from(ZonedDateTime.now().plusMinutes(time).toInstant()))
+	            .signWith(Keys.hmacShaKeyFor(createSecretKey()), Jwts.SIG.HS256)
+	            .compact();
 
+	        // 생성된 토큰 검증
+	        Map<String, Object> verifiedClaims = validateToken(jwtStr);
+	        log.info("토큰 생성 후 검증 - type: {}, claims: {}", verifiedClaims.get("type"), verifiedClaims);
+
+	        return jwtStr;
+	    } catch (Exception e) {
+	        log.error("JWT 생성 중 오류", e);
+	        throw new RuntimeException("Failed to generate JWT", e);
+	    }
+	}
 
     public Map<String, Object> validateToken(String token)throws JwtException {
 
         Map<String, Object> claim = null;
-
+        log.info("***** refresh 토큰 검증 진행"+token);
         //인증 토큰 문자열을 이용하여 클래임 객체를 얻는다
         claim = Jwts.parser()
         		.verifyWith(Keys.hmacShaKeyFor(createSecretKey()))
   				.build()
   				.parseSignedClaims(token)
   				.getPayload();
-      		
+      	log.info("토큰 객체?:" + claim.toString());
         // 토큰 타입 확인
         String tokenType = (String) claim.get("type");
         log.info("Token type: {}", tokenType);

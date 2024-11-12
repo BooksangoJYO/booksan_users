@@ -77,7 +77,7 @@ public class UsersService {
 	    UsersVO user = findByEmail(email);
 	    user.setDisabled('Y');  // 비활성화 
 	    user.setSignoutDate(new Date()); // 탈퇴일자 설정
-	    return usersDAO.updateUser(user);
+	    return usersDAO.disableUser(user);
 	}
 
 	public boolean isNicknameUsed(String nickname) {

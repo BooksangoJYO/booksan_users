@@ -23,6 +23,13 @@
 	    SET nickname = #{nickname}
 	    WHERE uid = #{uid}
 	 </update>
+	 <!-- 사용자 회원탈퇴(비활성화) -->
+	 <update id="disableUser" parameterType="io.booksan.booksan_users.vo.UsersVO">
+	    UPDATE USERS
+	    SET disabled = 'Y',
+	        signout_date = CURRENT_TIMESTAMP
+	    WHERE email = #{email}
+	</update>
 	 
 	 <select id="findByNickname" resultType="io.booksan.booksan_users.vo.UsersVO">
 	    SELECT * 

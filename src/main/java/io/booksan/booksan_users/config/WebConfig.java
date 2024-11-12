@@ -7,11 +7,14 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 public class WebConfig implements WebMvcConfigurer {
 	@Override
 	public void addCorsMappings(CorsRegistry registry) {
-		registry.addMapping("/**")
-				.allowedOrigins("http://localhost:5173") //프론트엔드 주소
-				.allowedMethods("GET", "POST", "PUT", "DELETE")
-				.allowedHeaders("*")
-				.exposedHeaders("Location")
-				.allowCredentials(true);
+	    registry.addMapping("/**")
+	        .allowedOrigins(
+	            "http://192.168.0.21:5173",
+	            "http://192.168.0.21:8081"
+	        )  // 여러 origin을 한번에 설정
+	        .allowedMethods("GET", "POST", "PUT", "DELETE")
+	        .allowedHeaders("*")
+	        .exposedHeaders("Location")
+	        .allowCredentials(true);
 	}
 }

@@ -6,9 +6,6 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.booksan.booksan_users.config.auth.PrincipalDetailsService;
 //import io.booksan.booksan_users.config.filter.TokenCheckFilter;
@@ -35,14 +32,11 @@ public class SecurityConfig {
 	               .dispatcherTypeMatchers(DispatcherType.FORWARD).permitAll()
 	               .requestMatchers(
 	                   "/",
-	                   "/api/users/auth/**",
-	                   "/api/users/signup",
-	                   "/api/users/logout", 
-	                   "/api/users/checkNickname",
+	                   "/api/**",
 	                   "/js/**",
 	                   "/css/**",
-	                   "/images/**",
-	                   "/api/users/checkToken"
+	                   "/images/**"
+	                   
 	               ).permitAll()
 	               .anyRequest().authenticated()
 	           );
