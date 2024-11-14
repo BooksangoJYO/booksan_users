@@ -35,8 +35,9 @@ public class TokenCheckFilter extends OncePerRequestFilter {
 			path.startsWith("/api/users/auth/")|| 
 		    path.equals("/api/users/signup") ||
 		    path.equals("/api/users/logout") ||
-		    path.equals("/api/users/checkNickname")
-//		    path.equals("토큰체커나 리프레시토큰 체크부분 2개")
+		    path.equals("/api/users/checkNickname") ||
+		    path.equals("/api/users/refresh") ||
+		    path.equals("/api/users/checkToken")
 		    ){
 			filterChain.doFilter(request, response);
 			return;
@@ -64,66 +65,4 @@ public class TokenCheckFilter extends OncePerRequestFilter {
 	        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
 	    }
 	}
-	
-//    private Map<String, Object> validateAccessToken(String accessToken, String refreshToken, HttpServletResponse response) throws AccessTokenException {
-//        // 쿠키에서 토큰 확인
-////        String accessToken = headers.get("accessToken");
-////        String refreshToken = headers.get("refreshToken");
-//
-//        if (accessToken == null) {
-//            throw new AccessTokenException(AccessTokenException.TOKEN_ERROR.UNACCEPT);
-//        }
-//
-//        try {
-//            return jwtUtil.validateToken(accessToken);
-//        } catch(MalformedJwtException malformedJwtException) {
-//            log.error("MalformedJwtException----------------------");
-//            throw new AccessTokenException(AccessTokenException.TOKEN_ERROR.MALFORM);
-//        } catch(SignatureException signatureException) {
-//            log.error("SignatureException----------------------");
-//            throw new AccessTokenException(AccessTokenException.TOKEN_ERROR.BADSIGN);
-//        } catch(ExpiredJwtException expiredJwtException) {
-//        	// accessToken이 만료된 경우 refreshToken 확인
-//            log.error("ExpiredJwtException----------------------");
-//            if (refreshToken != null) {
-//                try {
-//                    // refresh token 유효성 검증
-//                    Map<String, Object> refreshClaims = jwtUtil.validateToken(refreshToken);
-//                    
-//                    // access token 재발급
-//                    String newAccessToken = jwtUtil.regenerateAccessToken(refreshClaims);
-//                    
-//                    // 새로운 access token을 쿠키에 설정 프론트에서 만들고있기 때문에 필요X
-////                    Cookie newAccessTokenCookie = new Cookie("accessToken", newAccessToken);
-////                    newAccessTokenCookie.setHttpOnly(true);
-////                    newAccessTokenCookie.setSecure(true);
-////                    newAccessTokenCookie.setPath("/");
-////                    newAccessTokenCookie.setMaxAge(1800); // 30분
-//                    
-//                    // 새로운 토큰으로 검증 진행
-//                    return jwtUtil.validateToken(newAccessToken);
-//                } catch (Exception e) {
-//                    throw new AccessTokenException(AccessTokenException.TOKEN_ERROR.EXPIRED);
-//                }
-//            }
-//            throw new AccessTokenException(AccessTokenException.TOKEN_ERROR.EXPIRED);
-//        }
-//    }
-//    
-//    private void setAuthentication(Map<String, Object> claims) throws AccessTokenException {
-//    	
-//        String email = (String)claims.get("email");
-//        log.info("==== email정보 ====: " + email);
-//        
-//        // email에 대한 시큐리티 로그인 객체를 얻는다 
-//        UserDetails userDetails = principalDetailsService.loadUserByUsername(email);
-//        // userDetails 객체를 사용하여 인증객체로 생성한다  
-//        UsernamePasswordAuthenticationToken authentication =
-//                new UsernamePasswordAuthenticationToken(
-//                    userDetails, null, userDetails.getAuthorities());
-//        // 스프링 시큐리티에 인증객체를 설정한다 
-//        SecurityContextHolder.getContext().setAuthentication(authentication);
-//    }
-	
-
 }

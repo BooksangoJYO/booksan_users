@@ -17,12 +17,16 @@
         INSERT INTO USERS (uid, email, role_id, nickname) 
         VALUES (#{uid}, #{email}, #{roleId}, #{nickname})
      </insert>
+     
      <!-- 사용자 정보 업데이트 -->
      <update id="updateUser" parameterType="io.booksan.booksan_users.vo.UsersVO">
 	    UPDATE USERS 
-	    SET nickname = #{nickname}
+	    SET nickname = #{nickname},
+	    	disabled = 'N',
+	    	signout_date = NULL
 	    WHERE uid = #{uid}
 	 </update>
+	 
 	 <!-- 사용자 회원탈퇴(비활성화) -->
 	 <update id="disableUser" parameterType="io.booksan.booksan_users.vo.UsersVO">
 	    UPDATE USERS
