@@ -30,18 +30,20 @@ public class UsersService {
                 throw new Exception("이메일은 필수 정보입니다");
             }
             UsersVO existUser = usersDAO.findByEmail(usersVO.getEmail());
-            if (existUser != null && existUser.getNickname() != null && !existUser.getNickname().isEmpty()) {
-                throw new ExistMemberException(usersVO.getEmail());
-            }
-            // uid에 카카오 코드 저장
-            usersVO.setUid(code);
             
             if (existUser == null) {
-                // 새 회원 등록
+                // 새로운 신규 회원 등록
                 usersDAO.insertUser(usersVO);
                 log.info("새 사용자 등록 완료: {}", usersVO);
+            } else if (existUser.getDisabled() == 'Y') {
+                // 탈퇴했던 회원인 경우 정보 업데이트
+                usersDAO.updateUser(usersVO);
+                log.info("탈퇴 회원 재가입 완료: {}", usersVO);
+            } else if (existUser.getNickname() != null && !existUser.getNickname().isEmpty()) {
+                // 이미 가입된 활성화 되어있는 회원
+                throw new ExistMemberException(usersVO.getEmail());
             } else {
-                // 기존 회원이지만 nickname이 없는 경우는 회원가입이 필요한 상태
+                // 기존 회원이지만 닉네임이 없는 경우는 회원가입이 필요한 상태
                 log.info("기존 회원이지만 닉네임 미설정: {}", existUser.getEmail());
             }
             

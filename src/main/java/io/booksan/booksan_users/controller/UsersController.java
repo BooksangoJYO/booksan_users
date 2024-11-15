@@ -111,13 +111,14 @@ public class UsersController {
 	        }
 	        
 	        if (existingUser != null) {
-	            // char 타입 비교를 위해 수정
+	            // char 타입 비교
 	            if (existingUser.getDisabled() == 'Y') {  // String 비교 대신 char 비교
-	                log.info("User is disabled, returning error response");
+	            	log.info("탈퇴한 회원, 회원가입으로 리다이렉트");
 	                return ResponseEntity.ok(Map.of(
-	                    "status", "error",
-	                    "message", "withdrawn_user",
-	                    "email", email
+	                    "status", "success",
+	                    "type", "new",
+	                    "email", email,
+	                    "kakaoId", kakaoId
 	                ));
 	            }
 

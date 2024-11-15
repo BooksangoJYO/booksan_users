@@ -36,7 +36,6 @@ public class SecurityConfig {
 	                   "/js/**",
 	                   "/css/**",
 	                   "/images/**"
-	                   
 	               ).permitAll()
 	               .anyRequest().authenticated()
 	           );
