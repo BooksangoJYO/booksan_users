@@ -86,67 +86,55 @@ public class UsersController {
 
 	@GetMapping("/auth/kakao/callback")
 	public ResponseEntity<Map<String, Object>> kakaoCallback(@RequestParam("code") String code,
-	        HttpServletResponse response) {
-	    log.info("Kakao 코드받음: " + code);
-	    try {
-	        // 카카오 액세스 토큰 발급
-	        String kakaoAccessToken = getKakaoAccessToken(code);
-	        log.info("Kakao access token: " + kakaoAccessToken);
-	        // 카카오 사용자 정보 받기
-	        Map<String, Object> userInfo = getKakaoUserInfo(kakaoAccessToken);
-	        String email = (String) ((Map<String, Object>) userInfo.get("kakao_account")).get("email");
-	        String kakaoId = String.valueOf(userInfo.get("id"));
-	        log.info("카카오 유저 정보: " + userInfo);
+			HttpServletResponse response) {
+		log.info("Kakao 코드받음: " + code);
+		try {
+			// 카카오 액세스 토큰 발급
+			String kakaoAccessToken = getKakaoAccessToken(code);
+			log.info("Kakao access token: " + kakaoAccessToken);
+			// 카카오 사용자 정보 받기
+			Map<String, Object> userInfo = getKakaoUserInfo(kakaoAccessToken);
+			String email = (String) ((Map<String, Object>) userInfo.get("kakao_account")).get("email");
+			String kakaoId = String.valueOf(userInfo.get("id"));
+			log.info("카카오 유저 정보: " + userInfo);
 
-	        if (email == null) {
-	            return ResponseEntity.badRequest().body(Map.of("status", "error", "message", "email_not_found"));
-	        }
+			if (email == null) {
+				return ResponseEntity.badRequest().body(Map.of("status", "error", "message", "email_not_found"));
+			}
 
-	        // 기존 회원 확인
-	        UsersVO existingUser = usersService.findByEmail(email);
-	        // 디버깅을 위한 로그 추가
-	        if (existingUser != null) {
-	            log.info("Found user: {}", existingUser);
-	            log.info("Disabled status: {}", existingUser.getDisabled());
-	        }
-	        
-	        if (existingUser != null) {
-	            // char 타입 비교
-	            if (existingUser.getDisabled() == 'Y') {  // String 비교 대신 char 비교
-	            	log.info("탈퇴한 회원, 회원가입으로 리다이렉트");
-	                return ResponseEntity.ok(Map.of(
-	                    "status", "success",
-	                    "type", "new",
-	                    "email", email,
-	                    "kakaoId", kakaoId
-	                ));
-	            }
+			// 기존 회원 확인
+			UsersVO existingUser = usersService.findByEmail(email);
+			// 디버깅을 위한 로그 추가
+			if (existingUser != null) {
+				log.info("Found user: {}", existingUser);
+				log.info("Disabled status: {}", existingUser.getDisabled());
+			}
 
-	            // 기존(탈퇴하지않은) 회원인 경우 JWT 토큰 발급
-	            Map<String, String> tokens = jwtUtil.createLoginTokens(
-	                Map.of("email", existingUser.getEmail(), "nickname", existingUser.getNickname()));
-	            // 프론트엔드로 필요한 정보 반환
-	            return ResponseEntity.ok(Map.of(
-	                "status", "success", 
-	                "type", "existing", 
-	                "accessToken", tokens.get("accessToken"),
-	                "refreshToken", tokens.get("refreshToken"), 
-	                "userEmail", existingUser.getEmail()
-	            ));
-	        } else {
-	            // 신규 회원인 경우 필요한 정보 반환
-	            return ResponseEntity.ok(Map.of(
-	                "status", "success", 
-	                "type", "new", 
-	                "email", email, 
-	                "kakaoId", kakaoId
-	            ));
-	        }
-	    } catch (Exception e) {
-	        log.error("카카오 로그인 처리 중 오류", e);
-	        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-	            .body(Map.of("status", "error", "message", e.getMessage()));
-	    }
+			if (existingUser != null) {
+				// char 타입 비교
+				if (existingUser.getDisabled() == 'Y') { // String 비교 대신 char 비교
+					log.info("탈퇴한 회원, 회원가입으로 리다이렉트");
+					return ResponseEntity
+							.ok(Map.of("status", "success", "type", "new", "email", email, "kakaoId", kakaoId));
+				}
+
+				// 기존(탈퇴하지않은) 회원인 경우 JWT 토큰 발급
+				Map<String, String> tokens = jwtUtil.createLoginTokens(
+						Map.of("email", existingUser.getEmail(), "nickname", existingUser.getNickname()));
+				// 프론트엔드로 필요한 정보 반환
+				return ResponseEntity
+						.ok(Map.of("status", "success", "type", "existing", "accessToken", tokens.get("accessToken"),
+								"refreshToken", tokens.get("refreshToken"), "userEmail", existingUser.getEmail()));
+			} else {
+				// 신규 회원인 경우 필요한 정보 반환
+				return ResponseEntity
+						.ok(Map.of("status", "success", "type", "new", "email", email, "kakaoId", kakaoId));
+			}
+		} catch (Exception e) {
+			log.error("카카오 로그인 처리 중 오류", e);
+			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+					.body(Map.of("status", "error", "message", e.getMessage()));
+		}
 	}
 
 	// 카카오 액세스 토큰 받기
@@ -308,21 +296,35 @@ public class UsersController {
 
 	// 회원 개인정보수정
 	@PostMapping("/update")
-	public ResponseEntity<Map<String, Object>> update(@RequestBody UsersVO usersVO, Authentication authentication) {
+	public ResponseEntity<Map<String, Object>> update(@RequestBody UsersVO usersVO,
+			@RequestHeader Map<String, String> headers) {
+		log.info("회원정보 수정 API 호출");
 
 		try {
-			PrincipalDetails principalDetails = (PrincipalDetails) authentication.getPrincipal();
-			String uid = principalDetails.getUser().getUid(); // 현재 로그인한 사용자의 uid
+			// 토큰 검증 및 이메일 추출
+			Map<String, Object> claims = validateAccessToken(headers);
+			String email = (String) claims.get("email");
+			log.info("토큰에서 추출한 이메일: {}", email);
 
-			// 현재 로그인한 사용자의 uid로 설정
-			usersVO.setUid(uid);
+			if (email != null) {
+				// 이메일로 현재 사용자 정보 조회
+				UsersVO currentUser = usersService.findByEmail(email);
 
-			usersService.updateUser(usersVO);
+				// uid와 이메일 설정
+				usersVO.setUid(currentUser.getUid()); // 기존 사용자의 uid 설정
+				usersVO.setEmail(email);
 
-			return ResponseEntity.ok(Map.of("status", "success", "message", "정보가 수정되었습니다"));
+				log.info("최종 업데이트 데이터: {}", usersVO);
+				usersService.updateUser(usersVO);
+
+				return ResponseEntity.ok(Map.of("status", "success", "message", "정보가 수정되었습니다"));
+			}
+
+			return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
 		} catch (Exception e) {
 			log.error("사용자 정보 수정 실패", e);
-			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("error", "정보 수정 실패"));
+			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+					.body(Map.of("error", "정보 수정 실패: " + e.getMessage()));
 		}
 	}
 
@@ -351,38 +353,33 @@ public class UsersController {
 
 	// 2. 리프레시 토큰으로 새 액세스 토큰 발급
 	@PostMapping("/refresh")
-	public ResponseEntity<Map<String, String>> refreshAccessToken(@RequestBody Map<String, String> requestBody) {
+	public ResponseEntity<Map<String, Object>> refreshAccessToken(@RequestBody UsersVO usersVO,
+			@RequestHeader Map<String, String> headers) {
+		log.info("회원정보 수정 API 호출");
+
 		try {
-			String refreshToken = requestBody.get("refreshToken");
-			log.info("리프레시 토큰 요청 - 받은 토큰: {}", refreshToken);
+			Map<String, Object> claims = validateAccessToken(headers);
+			String email = (String) claims.get("email");
+			log.info("토큰에서 추출한 이메일: {}", email);
 
-			if (refreshToken == null) {
-				log.error("리프레시 토큰이 없음");
-				throw new AccessTokenException(AccessTokenException.TOKEN_ERROR.UNACCEPT);
+			if (email != null) {
+				// findByEmail로 수정
+				UsersVO currentUser = usersService.findByEmail(email);
+
+				usersVO.setUid(currentUser.getUid());
+				usersVO.setEmail(email);
+
+				log.info("최종 업데이트 데이터: {}", usersVO);
+				usersService.updateUser(usersVO);
+
+				return ResponseEntity.ok(Map.of("status", "success", "message", "정보가 수정되었습니다"));
 			}
 
-			// 리프레시 토큰 검증
-			Map<String, Object> refreshClaims = jwtUtil.validateToken(refreshToken);
-			log.info("리프레시 토큰 검증 완료 - claims: {}", refreshClaims);
-
-			// 토큰 타입 검증
-			String tokenType = (String) refreshClaims.get("type");
-			if (!"REFRESH".equals(tokenType)) {
-				log.error("잘못된 토큰 타입: {}", tokenType);
-				throw new AccessTokenException(AccessTokenException.TOKEN_ERROR.UNACCEPT);
-			}
-
-			// 새 액세스 토큰 생성
-			String newAccessToken = jwtUtil.regenerateAccessToken(refreshClaims);
-			log.info("새 액세스 토큰 생성 완료: {}", newAccessToken);
-
-			Map<String, String> response = new HashMap<>();
-			response.put("accessToken", newAccessToken);
-
-			return ResponseEntity.ok(response);
+			return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
 		} catch (Exception e) {
-			log.error("리프레시 토큰 처리 중 에러", e);
-			throw new AccessTokenException(AccessTokenException.TOKEN_ERROR.EXPIRED);
+			log.error("사용자 정보 수정 실패", e);
+			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+					.body(Map.of("error", "정보 수정 실패: " + e.getMessage()));
 		}
 	}
 
