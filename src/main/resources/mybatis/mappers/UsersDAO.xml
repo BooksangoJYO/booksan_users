@@ -41,4 +41,9 @@
 	    WHERE nickname = #{nickname}
 	 </select>
 	 
+	 <insert id="insertLoginLog" >
+        INSERT INTO LOGIN_LOGS (email)
+        VALUES (#{email})
+     </insert>
+
 </mapper>
