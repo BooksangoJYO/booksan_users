@@ -1,7 +1,6 @@
 package io.booksan.booksan_users.service;
 
 import java.util.Date;
-import java.util.NoSuchElementException;
 import java.util.Objects;
 
 import org.springframework.stereotype.Service;
@@ -10,7 +9,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.booksan.booksan_users.dao.UsersDAO;
-import io.booksan.booksan_users.dto.UsersDTO;
 import io.booksan.booksan_users.exception.ExistMemberException;
 import io.booksan.booksan_users.vo.UsersVO;
 import lombok.RequiredArgsConstructor;
@@ -20,17 +18,17 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 @Slf4j
 public class UsersService {
-	
-	final private UsersDAO usersDAO;
-	private final ObjectMapper objectMapper; // ObjectMapper 주입
-	
-	public void insertUser(UsersVO usersVO, String code) throws Exception {
+
+    final private UsersDAO usersDAO;
+    private final ObjectMapper objectMapper; // ObjectMapper 주입
+
+    public void insertUser(UsersVO usersVO, String code) throws Exception {
         try {
             if (usersVO == null || Objects.isNull(usersVO.getEmail())) {
                 throw new Exception("이메일은 필수 정보입니다");
             }
             UsersVO existUser = usersDAO.findByEmail(usersVO.getEmail());
-            
+
             if (existUser == null) {
                 // 새로운 신규 회원 등록
                 usersDAO.insertUser(usersVO);
@@ -46,7 +44,7 @@ public class UsersService {
                 // 기존 회원이지만 닉네임이 없는 경우는 회원가입이 필요한 상태
                 log.info("기존 회원이지만 닉네임 미설정: {}", existUser.getEmail());
             }
-            
+
         } catch (ExistMemberException ex) {
             log.info("완전한 회원가입이 완료된 기존 회원: {}", usersVO.getEmail());
             throw ex;
@@ -55,8 +53,8 @@ public class UsersService {
             throw ex;
         }
     }
-	
-	// 사용자 이메일을 추출하는 메소드 (JSON 응답을 파싱)
+
+    // 사용자 이메일을 추출하는 메소드 (JSON 응답을 파싱)
     public String extractUserEmail(String responseBody) {
         try {
             JsonNode jsonNode = objectMapper.readTree(responseBody);
@@ -66,25 +64,28 @@ public class UsersService {
             return null;
         }
     }
-    
+
     public UsersVO findByEmail(String email) {
-    	return usersDAO.findByEmail(email);
+        return usersDAO.findByEmail(email);
     }
-    
+
     public int updateUser(UsersVO user) {
         return usersDAO.updateUser(user);
     }
-    
-	public int disableUser(String email) {
-	    UsersVO user = findByEmail(email);
-	    user.setDisabled('Y');  // 비활성화 
-	    user.setSignoutDate(new Date()); // 탈퇴일자 설정
-	    return usersDAO.disableUser(user);
-	}
 
-	public boolean isNicknameUsed(String nickname) {
-		return usersDAO.findByNickname(nickname) != null;
-	}
+    public int disableUser(String email) {
+        UsersVO user = findByEmail(email);
+        user.setDisabled('Y');  // 비활성화 
+        user.setSignoutDate(new Date()); // 탈퇴일자 설정
+        return usersDAO.disableUser(user);
+    }
 
-	
+    public boolean isNicknameUsed(String nickname) {
+        return usersDAO.findByNickname(nickname) != null;
+    }
+
+    public void insertLoginLog(String email) {
+        usersDAO.insertLoginLog(email);
+    }
+
 }
