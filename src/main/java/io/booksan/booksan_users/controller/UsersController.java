@@ -10,8 +10,7 @@ import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
@@ -25,16 +24,11 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.RestTemplate;
 
-import io.booksan.booksan_users.config.auth.PrincipalDetails;
-import io.booksan.booksan_users.config.auth.PrincipalDetailsService;
 import io.booksan.booksan_users.config.jwt.JWTUtil;
 import io.booksan.booksan_users.dto.UsersDTO;
-import io.booksan.booksan_users.exception.AccessTokenException;
 import io.booksan.booksan_users.service.UsersService;
+import io.booksan.booksan_users.util.MapperUtil;
 import io.booksan.booksan_users.vo.UsersVO;
-import io.jsonwebtoken.ExpiredJwtException;
-import io.jsonwebtoken.MalformedJwtException;
-import io.jsonwebtoken.security.SignatureException;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -45,9 +39,9 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 public class UsersController {
 
+    private final MapperUtil mapperUtil;
     private final UsersService usersService;
     private final JWTUtil jwtUtil;
-    private final PrincipalDetailsService principalDetailsService;
 
     @Value("${kakao.app.key}")
     private String kakaoAppKey;
@@ -91,7 +85,7 @@ public class UsersController {
             }
 
             // 기존 회원 확인
-            UsersVO existingUser = usersService.findByEmail(email);
+            UsersDTO existingUser = usersService.findByEmail(email);
             // 디버깅을 위한 로그 추가
             if (existingUser != null) {
                 log.info("Found user: {}", existingUser);
@@ -205,27 +199,13 @@ public class UsersController {
         }
     }
 
-    // 회원 로그아웃
-    @PostMapping("/logout")
-    public ResponseEntity<Map<String, Object>> logout() {
-        try {
-            // 사용자 세션 정보 제거
-            SecurityContextHolder.clearContext();
-            return ResponseEntity.ok(Map.of("status", "success", "message", "로그아웃 성공"));
-        } catch (Exception e) {
-            log.error("로그아웃 처리 중 오류", e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("status", "error"));
-        }
-    }
-
     // 회원 탈퇴 (비활성화)
     @DeleteMapping("/delete")
-    public ResponseEntity<Map<String, Object>> withdraw(@RequestHeader Map<String, String> headers) {
+    public ResponseEntity<Map<String, Object>> withdraw(@AuthenticationPrincipal UserDetails userDetails) {
         log.info("회원탈퇴 요청 받음");
         try {
             // 토큰 검증 및 이메일 추출
-            Map<String, Object> claims = validateAccessToken(headers);
-            String email = (String) claims.get("email");
+            String email = userDetails.getUsername();
 
             if (email == null) {
                 log.error("회원탈퇴 실패 - 인증 정보 없음");
@@ -236,10 +216,6 @@ public class UsersController {
             // 유저 비활성화 처리
             usersService.disableUser(email);
             log.info("회원 비활성화 처리 완료 - email: {}", email);
-
-            // 로그아웃 (토큰 제거)
-            SecurityContextHolder.clearContext();
-
             return ResponseEntity.ok(Map.of("status", "success", "message", "회원 탈퇴가 완료되었습니다."));
         } catch (Exception e) {
             log.error("회원탈퇴 처리 중 오류", e);
@@ -248,30 +224,20 @@ public class UsersController {
         }
     }
 
-    // 마이페이지 정보
-    @GetMapping("/mypage")
-    public ResponseEntity<Map<String, Object>> getProfile(@RequestHeader Map<String, String> headers) {
-        log.info("마이페이지 API 호출");
-
+    // 유저정보얻기
+    @GetMapping("/loginInfo")
+    public ResponseEntity<Map<String, Object>> getLoginInfo(@AuthenticationPrincipal UserDetails userDetails) {
+        log.info("내 정보 API 호출");
+        String email = userDetails.getUsername();
         try {
             // 토큰 검증 및 인증 객체 생성
-            Map<String, Object> claims = validateAccessToken(headers);
-            String email = (String) claims.get("email");
 
             if (email != null) {
-                // UserDetails 생성 및 인증 객체 설정
-                UserDetails userDetails = principalDetailsService.loadUserByUsername(email);
-                UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
-                        userDetails, null, userDetails.getAuthorities());
-                SecurityContextHolder.getContext().setAuthentication(authentication);
-
                 // 사용자 정보 반환
+                UsersDTO usersDTO = usersService.findByEmail(email);
                 Map<String, Object> response = new HashMap<>();
-                PrincipalDetails principalDetails = (PrincipalDetails) authentication.getPrincipal();
-                UsersVO user = principalDetails.getUser();
-
-                response.put("email", user.getEmail());
-                response.put("nickname", user.getNickname());
+                response.put("email", usersDTO.getEmail());
+                response.put("nickname", usersDTO.getNickname());
 
                 return ResponseEntity.ok(response);
             }
@@ -285,26 +251,17 @@ public class UsersController {
 
     // 회원 개인정보수정
     @PostMapping("/update")
-    public ResponseEntity<Map<String, Object>> update(@RequestBody UsersVO usersVO,
-            @RequestHeader Map<String, String> headers) {
+    public ResponseEntity<Map<String, Object>> update(@RequestBody UsersDTO usersDTO,
+            @AuthenticationPrincipal UserDetails userDetails) {
         log.info("회원정보 수정 API 호출");
-
+        String email = userDetails.getUsername();
         try {
             // 토큰 검증 및 이메일 추출
-            Map<String, Object> claims = validateAccessToken(headers);
-            String email = (String) claims.get("email");
             log.info("토큰에서 추출한 이메일: {}", email);
 
-            if (email != null) {
-                // 이메일로 현재 사용자 정보 조회
-                UsersVO currentUser = usersService.findByEmail(email);
+            if (email != null && usersDTO.getEmail().equals(email)) {
 
-                // uid와 이메일 설정
-                usersVO.setUid(currentUser.getUid()); // 기존 사용자의 uid 설정
-                usersVO.setEmail(email);
-
-                log.info("최종 업데이트 데이터: {}", usersVO);
-                usersService.updateUser(usersVO);
+                usersService.updateUser(mapperUtil.map(usersDTO, UsersVO.class));
 
                 return ResponseEntity.ok(Map.of("status", "success", "message", "정보가 수정되었습니다"));
             }
@@ -317,75 +274,46 @@ public class UsersController {
         }
     }
 
-    // 1. 액세스 토큰 검증
-    private Map<String, Object> validateAccessToken(@RequestHeader Map<String, String> headers) {
-        log.info("access token check: " + headers.toString());
-        String accessToken = headers.get("accesstoken");
-
-        if (accessToken == null) {
-            throw new AccessTokenException(AccessTokenException.TOKEN_ERROR.UNACCEPT);
-        }
-
-        try {
-            return jwtUtil.validateToken(accessToken);
-        } catch (MalformedJwtException e) {
-            log.error("MalformedJwtException");
-            throw new AccessTokenException(AccessTokenException.TOKEN_ERROR.MALFORM);
-        } catch (SignatureException e) {
-            log.error("SignatureException");
-            throw new AccessTokenException(AccessTokenException.TOKEN_ERROR.BADSIGN);
-        } catch (ExpiredJwtException e) {
-            log.error("ExpiredJwtException");
-            throw new AccessTokenException(AccessTokenException.TOKEN_ERROR.EXPIRED);
-        }
-    }
-
-    // 2. 리프레시 토큰으로 새 액세스 토큰 발급
     @PostMapping("/refresh")
-    public ResponseEntity<Map<String, Object>> refreshAccessToken(@RequestBody UsersVO usersVO,
+    public ResponseEntity<Map<String, Object>> refreshAccessToken(
             @RequestHeader Map<String, String> headers) {
-        log.info("회원정보 수정 API 호출");
+        log.info("리프레시 토큰 발급");
+        log.info(headers.toString());
+        String refreshToken = headers.get("refreshtoken");
+        log.info("**리프레쉬 토큰 확인" + refreshToken);
+        if (refreshToken == null) {
+            return ResponseEntity.status(419)
+                    .body(Map.of("error", "Refresh token expired", "statusCode", 419));
 
+        }
         try {
-            Map<String, Object> claims = validateAccessToken(headers);
-            String email = (String) claims.get("email");
-            log.info("토큰에서 추출한 이메일: {}", email);
-
-            if (email != null) {
-                // findByEmail로 수정
-                UsersVO currentUser = usersService.findByEmail(email);
-
-                usersVO.setUid(currentUser.getUid());
-                usersVO.setEmail(email);
-
-                log.info("최종 업데이트 데이터: {}", usersVO);
-                usersService.updateUser(usersVO);
-
-                return ResponseEntity.ok(Map.of("status", "success", "message", "정보가 수정되었습니다"));
+            Map<String, Object> claims = jwtUtil.validateToken(refreshToken);
+            String newAccessToken = jwtUtil.regenerateAccessToken(claims);
+            String newRefreshToken = jwtUtil.regenerateRefreshToken(refreshToken);
+            if (newAccessToken != null) {
+                if (newRefreshToken != null) {
+                    return ResponseEntity.ok(Map.of("status", "success", "accessToken", newAccessToken, "refreshToken", newRefreshToken));
+                }
+                return ResponseEntity.ok(Map.of("status", "success", "accessToken", newAccessToken));
             }
 
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         } catch (Exception e) {
-            log.error("사용자 정보 수정 실패", e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(Map.of("error", "정보 수정 실패: " + e.getMessage()));
+            log.error("리프레쉬 토큰 만료", e);
+            return ResponseEntity.status(419)
+                    .body(Map.of("error", "Refresh token expired", "statusCode", 419));
         }
     }
 
-    // 3. 인증 체크
     @PostMapping("/checkToken")
     public ResponseEntity<String> checkAuthentication(@RequestHeader Map<String, String> headers) {
         try {
-            Map<String, Object> payload = validateAccessToken(headers);
+            String accessToken = headers.get("accesstoken");
+            Map<String, Object> payload = jwtUtil.validateToken(accessToken);
             String email = (String) payload.get("email");
             log.info("****email: " + email);
 
             if (email != null) {
-                UserDetails userDetails = principalDetailsService.loadUserByUsername(email);
-                UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
-                        userDetails, null, userDetails.getAuthorities());
-
-                SecurityContextHolder.getContext().setAuthentication(authentication);
                 return ResponseEntity.ok(email);
             }
 

@@ -28,7 +28,7 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-security'
 	implementation 'org.mybatis.spring.boot:mybatis-spring-boot-starter:3.0.3'
 	runtimeOnly 'org.mariadb.jdbc:mariadb-java-client'
-
+	implementation 'org.modelmapper:modelmapper:3.1.1'
 	implementation 'org.springframework.boot:spring-boot-starter-web'
 	
 	//swagger 관련 설정 

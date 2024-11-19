@@ -9,7 +9,7 @@
 	 <select id="findByEmail" resultType="io.booksan.booksan_users.vo.UsersVO">
         SELECT * 
         FROM USERS
-        WHERE email = #{email}  
+        WHERE email = #{email}
      </select>
      
      <!-- 사용자 정보 삽입 -->
