@@ -2,30 +2,23 @@ package io.booksan.booksan_users.config.auth;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Date;
 
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
-import io.booksan.booksan_users.vo.UsersVO;
-
 public class PrincipalDetails implements UserDetails {
 
     private static final long serialVersionUID = -951226953749557253L;
-	private UsersVO user;
+    private String email;
 
-    public PrincipalDetails(UsersVO user) {
-        this.user = user;
+    public PrincipalDetails(String email) {
+        this.email = email;
     }
 
-    public UsersVO getUser() {
-        return user;
+    public String getEmail() {
+        return email;
     }
 
-    public Date getSignupDate() {
-    	return user.getSignupDate();
-    }
-    
     @Override
     public String getPassword() {
         return "";
@@ -33,7 +26,7 @@ public class PrincipalDetails implements UserDetails {
 
     @Override
     public String getUsername() {
-        return user != null ? user.getEmail() : "";
+        return email;
     }
 
     @Override
@@ -59,8 +52,6 @@ public class PrincipalDetails implements UserDetails {
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         Collection<GrantedAuthority> authorities = new ArrayList<>();
-        user.getRoleId();
-        
         return authorities;
     }
 }

@@ -9,7 +9,9 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.booksan.booksan_users.dao.UsersDAO;
+import io.booksan.booksan_users.dto.UsersDTO;
 import io.booksan.booksan_users.exception.ExistMemberException;
+import io.booksan.booksan_users.util.MapperUtil;
 import io.booksan.booksan_users.vo.UsersVO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -19,6 +21,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class UsersService {
 
+    private final MapperUtil mapperUtil;
     final private UsersDAO usersDAO;
     private final ObjectMapper objectMapper; // ObjectMapper 주입
 
@@ -65,8 +68,8 @@ public class UsersService {
         }
     }
 
-    public UsersVO findByEmail(String email) {
-        return usersDAO.findByEmail(email);
+    public UsersDTO findByEmail(String email) {
+        return mapperUtil.map(usersDAO.findByEmail(email), UsersDTO.class);
     }
 
     public int updateUser(UsersVO user) {
@@ -74,7 +77,7 @@ public class UsersService {
     }
 
     public int disableUser(String email) {
-        UsersVO user = findByEmail(email);
+        UsersVO user = usersDAO.findByEmail(email);
         user.setDisabled('Y');  // 비활성화 
         user.setSignoutDate(new Date()); // 탈퇴일자 설정
         return usersDAO.disableUser(user);
