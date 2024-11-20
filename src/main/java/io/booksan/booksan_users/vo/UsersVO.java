@@ -27,4 +27,6 @@ public class UsersVO {
 	private Date signupDate;
 	private Date signoutDate;
 	private char disabled;
+	private int bookAlert;
+	private int chatAlert;
 }

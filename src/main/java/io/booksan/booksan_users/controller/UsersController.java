@@ -238,7 +238,9 @@ public class UsersController {
                 Map<String, Object> response = new HashMap<>();
                 response.put("email", usersDTO.getEmail());
                 response.put("nickname", usersDTO.getNickname());
-
+                response.put("bookAlert", usersDTO.getBookAlert());
+                response.put("chatAlert", usersDTO.getChatAlert());
+                
                 return ResponseEntity.ok(response);
             }
 

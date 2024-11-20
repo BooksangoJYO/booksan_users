@@ -24,5 +24,7 @@ public class UsersDTO {
 	private String autoLogin;
 	private Date signupDate;
 	private Date signoutDate;
-	private char disabled; 
+	private char disabled;
+	private int bookAlert;
+	private int chatAlert;
 }
