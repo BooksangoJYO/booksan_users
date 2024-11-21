@@ -240,7 +240,7 @@ public class UsersController {
                 response.put("nickname", usersDTO.getNickname());
                 response.put("bookAlert", usersDTO.getBookAlert());
                 response.put("chatAlert", usersDTO.getChatAlert());
-                
+
                 return ResponseEntity.ok(response);
             }
 
