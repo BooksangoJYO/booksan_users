@@ -1,0 +1,44 @@
+version: "3"
+
+services:
+  traefik:
+    image: traefik:v2.10
+    command:
+      - "--api.insecure=true" 
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      - "--serversTransport.insecureSkipVerify=true"
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+    networks:
+      - network
+
+  booksan_chat:
+    restart: on-failure
+    build: .
+    deploy:
+      replicas: 2
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.middlewares.sslheader.headers.customrequestheaders.X-Forwarded-Proto=https"
+      # WebSocket과 API 설정
+      - "traefik.http.routers.chat.rule=Host(`master.dbb8znri3ntsx.amplifyapp.com`)
+      - "traefik.http.routers.chat.entrypoints=websecure"
+      # 채팅 서비스
+      - "traefik.http.routers.user.rule=Host(`3.35.212.237`)"
+      - "traefik.http.routers.user.entrypoints=websecure"
+      # 보드 서비스
+      - "traefik.http.routers.board.rule=Host(`52.79.130.106`)"
+      - "traefik.http.routers.board.entrypoints=websecure"
+    environment:
+      - USE_POST=8080
+    networks:
+      - network
+
+networks:
+  network:

@@ -2,6 +2,7 @@ package io.booksan.booksan_users.config.security;
 
 import java.util.Arrays;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -11,8 +12,6 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
-import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
-import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 import io.booksan.booksan_users.config.auth.PrincipalDetailsService;
 import io.booksan.booksan_users.config.jwt.JWTUtil;
@@ -24,6 +23,13 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 @EnableWebSecurity
 public class SecurityConfig {
+
+    @Value("${booksan.front}")
+    private String frontUrl;
+    @Value("${booksan.chat}")
+    private String chatUrl;
+    @Value("${booksan.board}")
+    private String boardUrl;
 
     private final JWTUtil jwtUtil;
     private final PrincipalDetailsService principalDetailsService;
@@ -38,10 +44,10 @@ public class SecurityConfig {
                 .authenticated())
                 // 예외 처리 추가
                 .exceptionHandling(handling -> handling
-                        .authenticationEntryPoint((request, response, authException) -> {
-                            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-                            response.getWriter().write("Unauthorized: " + authException.getMessage());
-                        })
+                .authenticationEntryPoint((request, response, authException) -> {
+                    response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                    response.getWriter().write("Unauthorized: " + authException.getMessage());
+                })
                 );
         return http.build();
     }
@@ -49,8 +55,8 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOriginPatterns(Arrays.asList("http://localhost:5173")); // 실제 운영환경에서는 구체적인 도메인 지정 필요
-        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE","OPTIONS"));
+        configuration.setAllowedOriginPatterns(Arrays.asList(frontUrl, boardUrl, chatUrl)); // 실제 운영환경에서는 구체적인 도메인 지정 필요
+        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(Arrays.asList(
                 "Origin",
                 "Accept",
@@ -61,9 +67,9 @@ public class SecurityConfig {
                 "Authorization"
         ));
         configuration.setExposedHeaders(Arrays.asList(
-            "Access-Control-Allow-Origin",
-            "Access-Control-Allow-Credentials",
-            "Authorization"
+                "Access-Control-Allow-Origin",
+                "Access-Control-Allow-Credentials",
+                "Authorization"
         ));
         configuration.setAllowCredentials(true);
         configuration.setMaxAge(3600L);
