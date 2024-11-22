@@ -65,6 +65,7 @@ public class TokenCheckFilter extends OncePerRequestFilter {
             Map<String, Object> claims = jwtUtil.validateToken(accessToken); // 유효성만 확인
             String email = (String) claims.get("email");
             // 정상적인 경우, 요청을 계속 진행
+            log.info("***이메일" + email);
             if (email != null) {
                 UserDetails userDetails = principalDetailsService.loadUserByUsername(email);
                 // userDetails 객체를 사용하여 인증객체로 생성한다  

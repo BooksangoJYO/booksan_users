@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+      PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+      "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="io.booksan.booksan_users.dao.AdminDAO">
+    <select id="getWeeklyStats" resultType="map">
+        WITH RECURSIVE DateRange AS (
+            SELECT CURDATE() as date
+            UNION ALL
+            SELECT DATE_SUB(date, INTERVAL 1 DAY)
+            FROM DateRange
+            WHERE date > DATE_SUB(CURDATE(), INTERVAL 6 DAY)
+        )
+        SELECT 
+            DATE_FORMAT(d.date, '%m/%d') as date,
+            (
+                SELECT COUNT(DISTINCT login_log_id)
+                FROM LOGIN_LOGS u
+                WHERE DATE(u.login_time) = d.date
+            ) as users,
+            (
+                SELECT COUNT(DISTINCT deal_id)
+                FROM DEALS_BOARD d
+                WHERE DATE(d.insert_datetime) = d.date
+            ) as deals,
+            (
+                SELECT COUNT(DISTINCT room_id)
+                FROM CHAT_ROOM c
+                WHERE DATE(c.insert_daytime) = d.date
+            ) as chats,
+            (
+                SELECT COUNT(DISTINCT uid)
+                FROM USERS u
+                WHERE DATE(u.signup_date) = d.date
+            ) as signups
+        FROM DateRange d
+        ORDER BY d.date DESC
+    </select>
+	
+</mapper>
