@@ -140,4 +140,8 @@ public class UsersService {
         ImageFileVO imageFile = imageFileDAO.readImageFile(imgId);
         return mapperUtil.map(imageFile, ImageFileDTO.class);
     }
+
+    public UsersVO getUserInfoByEmail(String email) {
+        return usersDAO.findByEmail(email);
+    }
 }

@@ -247,6 +247,10 @@ public class UsersController {
                 response.put("bookAlert", usersDTO.getBookAlert());
                 response.put("chatAlert", usersDTO.getChatAlert());
                 response.put("imgId", usersDTO.getImgId());
+                if (usersDTO.getRoleId() == 99) {
+                    response.put("role", "ADMIN");
+                }
+
                 log.info(response.toString());
 
                 return ResponseEntity.ok(response);
@@ -397,5 +401,15 @@ public class UsersController {
 
             return ResponseEntity.ok(response);
         }
+    }
+
+    @GetMapping("/userInfoBy/{email}")
+    public ResponseEntity<?> getUserInfoByEmail(@PathVariable("email") String email) {
+        UsersVO user = usersService.getUserInfoByEmail(email);
+         if (user != null) {
+             return ResponseEntity.ok(user);
+         } else {
+             return ResponseEntity.notFound().build();
+         }
     }
 }
