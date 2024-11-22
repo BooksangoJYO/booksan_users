@@ -43,6 +43,7 @@ public class TokenCheckFilter extends OncePerRequestFilter {
                 || path.equals("/api/users/logout")
                 || path.equals("/api/users/checkNickname")
                 || path.equals("/api/users/refresh")
+                || path.startsWith("/api/users/read/download")
                 || path.equals("/api/users/checkToken")) {
             filterChain.doFilter(request, response);
             return;
@@ -82,5 +83,6 @@ public class TokenCheckFilter extends OncePerRequestFilter {
             log.info("잘못된 토큰 요청" + e);
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
         }
+        log.info(path + " 요청 처리 완료");
     }
 }

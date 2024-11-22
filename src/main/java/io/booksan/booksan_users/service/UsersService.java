@@ -109,15 +109,16 @@ public class UsersService {
                 imageFileDAO.insertImageFile(imageFileVO);
                 result = usersDAO.updateUserImage(imageFileVO.getImgId(), email);
 
-            } else {
-                imageFileDAO.deleteImageFile(imageFileVO.getImgId(), usersDTO.getUid());
-                result = usersDAO.deleteUserImage(mapperUtil.map(usersDTO, UsersVO.class));
             }
         } catch (Exception e) {
             e.printStackTrace();
         }
 
         return 1;
+    }
+
+    public int deleteUserImage(String email) {
+        return usersDAO.deleteUserImage(email);
     }
 
     public int disableUser(String email) {
@@ -135,8 +136,8 @@ public class UsersService {
         usersDAO.insertLoginLog(email);
     }
 
-    public ImageFileDTO readImageFile(String email) {
-        ImageFileVO imageFile = imageFileDAO.readImageFile(email);
+    public ImageFileDTO readImageFile(int imgId) {
+        ImageFileVO imageFile = imageFileDAO.readImageFile(imgId);
         return mapperUtil.map(imageFile, ImageFileDTO.class);
     }
 }

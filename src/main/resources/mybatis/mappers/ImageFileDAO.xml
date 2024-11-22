@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC  "-//mybatis.org//DTO Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="io.booksan.booksan_users.dao.ImageFileDAO">
+
+	<insert id="insertImageFile" useGeneratedKeys="true" keyProperty="imgId">
+		insert into PROFILE_IMAGES (
+			img_uuid
+			,img_name
+			,img_size
+			,img_type
+		) values (
+			#{imgUuid}
+			,#{imgName}
+			,#{imgSize}
+			,#{imgType}
+		)
+	</insert>
+
+	<!-- <select id="getImageFileList" resultType="io.booksan.booksan_board.vo.ImageFileVO">
+		select * from DEALS_IMAGES where deal_id = #{dealId}
+	</select> -->
+	
+	<select id="readImageFile" resultType="io.booksan.booksan_users.vo.ImageFileVO">
+		SELECT *
+		FROM PROFILE_IMAGES
+		where img_id = #{imgId}
+			AND disabled = 'N'
+	</select>	
+
+	<update id="deleteImageFile">
+		update PROFILE_IMAGES p
+			JOIN USERS u ON p.img_id = u.img_id
+		set p.disabled = 'Y'
+		where u.uid = #{uid}
+	</update>
+</mapper>	
