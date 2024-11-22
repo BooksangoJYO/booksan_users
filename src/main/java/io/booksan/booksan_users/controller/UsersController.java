@@ -1,6 +1,8 @@
 package io.booksan.booksan_users.controller;
 
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.URLEncoder;
 import java.util.HashMap;
 import java.util.Map;
@@ -16,7 +18,10 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -25,6 +30,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.RestTemplate;
 
 import io.booksan.booksan_users.config.jwt.JWTUtil;
+import io.booksan.booksan_users.dto.ImageFileDTO;
 import io.booksan.booksan_users.dto.UsersDTO;
 import io.booksan.booksan_users.service.UsersService;
 import io.booksan.booksan_users.util.MapperUtil;
@@ -240,6 +246,8 @@ public class UsersController {
                 response.put("nickname", usersDTO.getNickname());
                 response.put("bookAlert", usersDTO.getBookAlert());
                 response.put("chatAlert", usersDTO.getChatAlert());
+                response.put("imgId", usersDTO.getImgId());
+                log.info(response.toString());
 
                 return ResponseEntity.ok(response);
             }
@@ -274,6 +282,29 @@ public class UsersController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(Map.of("error", "정보 수정 실패: " + e.getMessage()));
         }
+    }
+
+    @PutMapping("/update/image")
+    public ResponseEntity<?> updateImage(@ModelAttribute UsersDTO usersDTO, @AuthenticationPrincipal UserDetails userDetails) {
+        String email = userDetails.getUsername();
+        //응답 데이터를 저장할 response
+        Map<String, Object> response = new HashMap<>();
+
+        if (email != null) {
+            
+            int result = usersService.updateUserImage(usersDTO, email);
+            
+            if (result == 1) {
+                response.put("status", "success");
+                response.put("message", "프사 수정 성공");
+                return ResponseEntity.ok(response);
+            }
+
+        }
+        response.put("status", "fail");
+        response.put("message", "프사 수정 실패");
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+
     }
 
     @PostMapping("/refresh")
@@ -326,4 +357,25 @@ public class UsersController {
         }
     }
 
+    @GetMapping("/read/download/{imgId}")
+    public ResponseEntity<?> downloadFile(@PathVariable("imgId") String imgId, HttpServletResponse response) throws IOException {
+        ImageFileDTO imageFileDTO = usersService.readImageFile(imgId);
+        if (imageFileDTO == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+        } else {
+            String imgName = imageFileDTO.getImgName();
+            imgName = URLEncoder.encode(imgName, "UTF-8");
+
+            response.setHeader("Cache-Control", "no-cache");		// 캐시x, 최신화된 데이터
+            response.setHeader("Content-Disposition", "inline; filename=\"" + imgName + "\"");	// inline : 화면에 바로 렌더링, attachment : 첨부파일 다운로드
+            response.setContentType(imageFileDTO.getImgType());
+            response.setContentLength(imageFileDTO.getImgSize());
+
+            InputStream is = new FileInputStream("/Users/Public/download/" + imageFileDTO.getImgUuid());		// 파일 입력 스트림에 파일 데이터 전송
+            is.transferTo(response.getOutputStream());		// 파일 출력 스트림에 파일 데이터 전송
+            is.close();
+
+            return ResponseEntity.ok(response);
+        }
+    }
 }

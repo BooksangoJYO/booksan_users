@@ -2,6 +2,8 @@ package io.booksan.booksan_users.dto;
 
 import java.util.Date;
 
+import org.springframework.web.multipart.MultipartFile;
+
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -27,4 +29,7 @@ public class UsersDTO {
 	private char disabled;
 	private int bookAlert;
 	private int chatAlert;
+
+	private MultipartFile file;
+	private ImageFileDTO imageFileDTO;
 }

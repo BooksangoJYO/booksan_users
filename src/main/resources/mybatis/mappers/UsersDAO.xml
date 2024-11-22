@@ -21,9 +21,19 @@
      <!-- 사용자 정보 업데이트 -->
      <update id="updateUser" parameterType="io.booksan.booksan_users.vo.UsersVO">
 	    UPDATE USERS 
-	    SET nickname = #{nickname},
-	    	disabled = 'N',
-	    	signout_date = NULL
+	    SET nickname = #{nickname}
+	    WHERE uid = #{uid}
+	 </update>
+
+     <update id="updateUserImage">
+	    UPDATE USERS 
+	    SET img_id = #{imgId}
+	    WHERE email = #{email}
+	 </update>
+
+     <update id="deleteUserImage" parameterType="io.booksan.booksan_users.vo.UsersVO">
+	    UPDATE USERS 
+	    SET img_id = NULL
 	    WHERE uid = #{uid}
 	 </update>
 	 

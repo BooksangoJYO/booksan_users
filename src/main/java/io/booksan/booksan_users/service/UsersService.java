@@ -1,17 +1,25 @@
 package io.booksan.booksan_users.service;
 
+import java.io.FileOutputStream;
+import java.io.OutputStream;
 import java.util.Date;
 import java.util.Objects;
+import java.util.UUID;
 
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import io.booksan.booksan_users.dao.ImageFileDAO;
 import io.booksan.booksan_users.dao.UsersDAO;
+import io.booksan.booksan_users.dto.ImageFileDTO;
 import io.booksan.booksan_users.dto.UsersDTO;
 import io.booksan.booksan_users.exception.ExistMemberException;
 import io.booksan.booksan_users.util.MapperUtil;
+import io.booksan.booksan_users.vo.ImageFileVO;
 import io.booksan.booksan_users.vo.UsersVO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -23,6 +31,7 @@ public class UsersService {
 
     private final MapperUtil mapperUtil;
     final private UsersDAO usersDAO;
+    final private ImageFileDAO imageFileDAO;
     private final ObjectMapper objectMapper; // ObjectMapper 주입
 
     public void insertUser(UsersVO usersVO, String code) throws Exception {
@@ -76,6 +85,41 @@ public class UsersService {
         return usersDAO.updateUser(user);
     }
 
+    public int updateUserImage(UsersDTO usersDTO, String email) {
+        ImageFileVO imageFileVO = new ImageFileVO();
+        
+        int result;
+        try {
+            if(usersDTO.getFile() != null) {
+                imageFileDAO.deleteImageFile(imageFileVO.getImgId(), usersDTO.getUid());
+                MultipartFile file = usersDTO.getFile();
+                
+                String imageUuid = UUID.randomUUID().toString();
+                
+                OutputStream os = new FileOutputStream("/Users/Public/download/" + imageUuid);
+                file.getInputStream().transferTo(os);
+                os.close();
+
+                imageFileVO = new ImageFileVO();
+                imageFileVO.setImgName(file.getOriginalFilename());
+                imageFileVO.setImgUuid(imageUuid);
+                imageFileVO.setImgType(file.getContentType());
+                imageFileVO.setImgSize((int) file.getSize());
+
+                imageFileDAO.insertImageFile(imageFileVO);
+                result = usersDAO.updateUserImage(imageFileVO.getImgId(), email);
+
+            } else {
+                imageFileDAO.deleteImageFile(imageFileVO.getImgId(), usersDTO.getUid());
+                result = usersDAO.deleteUserImage(mapperUtil.map(usersDTO, UsersVO.class));
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return 1;
+    }
+
     public int disableUser(String email) {
         UsersVO user = usersDAO.findByEmail(email);
         user.setDisabled('Y');  // 비활성화 
@@ -91,4 +135,8 @@ public class UsersService {
         usersDAO.insertLoginLog(email);
     }
 
+    public ImageFileDTO readImageFile(String email) {
+        ImageFileVO imageFile = imageFileDAO.readImageFile(email);
+        return mapperUtil.map(imageFile, ImageFileDTO.class);
+    }
 }
