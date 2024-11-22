@@ -17,7 +17,7 @@ public interface UsersDAO {
     // 사용자 정보 업데이트
     int updateUser(UsersVO usersVO);
 
-    int deleteUserImage(UsersVO usersVO);
+    int deleteUserImage(String email);
     int updateUserImage(int imgId, String email);
 
     // 마지막 로그인 시간 업데이트

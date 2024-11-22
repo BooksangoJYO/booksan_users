@@ -31,10 +31,10 @@
 	    WHERE email = #{email}
 	 </update>
 
-     <update id="deleteUserImage" parameterType="io.booksan.booksan_users.vo.UsersVO">
+     <update id="deleteUserImage">
 	    UPDATE USERS 
-	    SET img_id = NULL
-	    WHERE uid = #{uid}
+	    SET img_id = 514
+	    WHERE email = #{email}
 	 </update>
 	 
 	 <!-- 사용자 회원탈퇴(비활성화) -->

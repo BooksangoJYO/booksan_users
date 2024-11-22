@@ -307,6 +307,26 @@ public class UsersController {
 
     }
 
+    @DeleteMapping("/delete/image")
+    public ResponseEntity<?> deleteImage(@AuthenticationPrincipal UserDetails userDetails) {
+        String email = userDetails.getUsername();
+        //응답 데이터를 저장할 response
+        Map<String, Object> response = new HashMap<>();
+
+        if (email != null) {
+            int result = usersService.deleteUserImage(email);
+
+            if (result == 1) {
+                response.put("status", "success");
+                response.put("message", "프사 삭제 성공");
+                return ResponseEntity.ok(response);
+            }
+        }
+        response.put("status", "fail");
+        response.put("message", "프사 삭제 실패");
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+    }
+
     @PostMapping("/refresh")
     public ResponseEntity<Map<String, Object>> refreshAccessToken(
             @RequestHeader Map<String, String> headers) {
@@ -358,7 +378,7 @@ public class UsersController {
     }
 
     @GetMapping("/read/download/{imgId}")
-    public ResponseEntity<?> downloadFile(@PathVariable("imgId") String imgId, HttpServletResponse response) throws IOException {
+    public ResponseEntity<?> downloadFile(@PathVariable("imgId") int imgId, HttpServletResponse response) throws IOException {
         ImageFileDTO imageFileDTO = usersService.readImageFile(imgId);
         if (imageFileDTO == null) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
