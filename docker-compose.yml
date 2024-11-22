@@ -7,14 +7,20 @@ services:
       - "--api.insecure=true" 
       - "--providers.docker=true"
       - "--providers.docker.exposedbydefault=false"
-      - "--entrypoints.web.address=:80"
-      - "--entrypoints.websecure.address=:443"
+      - "--entrypoints.web.address=:80" # HTTP (포트 80)
+      - "--entrypoints.websecure.address=:443" # HTTPS (포트 443)
       - "--serversTransport.insecureSkipVerify=true"
+      # SSL 설정
+      - "--entrypoints.websecure.http.tls=true" # TLS 활성화
+      - "--entrypoints.websecure.http.tls.certResolver=myresolver" # 인증서 발급
+      - "--certificatesresolvers.myresolver.acme.tlschallenge=true" # Let's Encrypt 사용
+      - "--certificatesresolvers.myresolver.acme.storage=/letsencrypt/acme.json" # 인증서 저장 위치
     ports:
-      - "80:80"
-      - "443:443"
+      - "80:80"   # HTTP
+      - "443:443" # HTTPS
     volumes:
-      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"   # Docker socket (Traefik이 Docker API와 상호작용)
+      - "./letsencrypt:/letsencrypt"  # 인증서 저장 경로
     networks:
       - network
 
@@ -25,16 +31,18 @@ services:
       replicas: 2
     labels:
       - "traefik.enable=true"
-      - "traefik.http.middlewares.sslheader.headers.customrequestheaders.X-Forwarded-Proto=https"
-      # WebSocket과 API 설정
-      - "traefik.http.routers.chat.rule=Host(`master.dbb8znri3ntsx.amplifyapp.com`)
-      - "traefik.http.routers.chat.entrypoints=websecure"
-      # 채팅 서비스
+      # WebSocket과 API를 처리하는 라우터
+      - "traefik.http.routers.chat.rule=Host(`master.dbb8znri3ntsx.amplifyapp.com`)"
+      - "traefik.http.routers.chat.entrypoints=websecure"  # HTTPS로 요청 처리
+      - "traefik.http.routers.chat.tls=true"  # TLS 활성화
+      # 백엔드 서비스 (Spring Boot)
       - "traefik.http.routers.user.rule=Host(`3.35.212.237`)"
-      - "traefik.http.routers.user.entrypoints=websecure"
-      # 보드 서비스
+      - "traefik.http.routers.user.entrypoints=web"  # HTTP로 연결
+      - "traefik.http.routers.user.tls=false"  # TLS 비활성화 (백엔드는 HTTP)
+      # 추가 서비스 포트 지정
       - "traefik.http.routers.board.rule=Host(`52.79.130.106`)"
-      - "traefik.http.routers.board.entrypoints=websecure"
+      - "traefik.http.routers.user.entrypoints=web"  # HTTP로 연결
+      - "traefik.http.routers.user.tls=false"  # TLS 비활성화 (백엔드는 HTTP)
     environment:
       - USE_POST=8080
     networks:
