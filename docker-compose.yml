@@ -27,6 +27,8 @@ services:
     build: .
     deploy:
       replicas: 1
+    volumes:
+      - /home/ubuntu/Downloads:/home/ubuntu/Downloads
     labels:
       - "traefik.enable=true"
       - "traefik.http.middlewares.sslheader.headers.customrequestheaders.X-Forwarded-Proto=https"

@@ -31,6 +31,7 @@ public class SecurityConfig {
     @Value("${booksan.board}")
     private String boardUrl;
 
+    @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
                 // preflight 요청은 인증을 타지 않도록 먼저 설정
