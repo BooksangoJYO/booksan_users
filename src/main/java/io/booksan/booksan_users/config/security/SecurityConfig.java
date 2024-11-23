@@ -12,6 +12,7 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.CorsUtils;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import jakarta.servlet.DispatcherType;
@@ -30,12 +31,15 @@ public class SecurityConfig {
     @Value("${booksan.board}")
     private String boardUrl;
 
-    @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
                 // preflight 요청은 인증을 타지 않도록 먼저 설정
                 .authorizeHttpRequests(matchers -> matchers
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll() // OPTIONS 요청 먼저 허용
+                .requestMatchers(CorsUtils::isPreFlightRequest).permitAll() // 여기로 옮김
+                .dispatcherTypeMatchers(DispatcherType.FORWARD).permitAll()
+                .requestMatchers("/", "/api/**", "/js/**", "/css/**", "/images/**").permitAll()
+                .anyRequest().authenticated() // anyRequest는 마지막에 한 번만
                 )
                 .sessionManagement(session -> session
                 .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
@@ -43,11 +47,6 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .cors(cors -> cors
                 .configurationSource(corsConfigurationSource())
-                )
-                .authorizeHttpRequests(matchers -> matchers
-                .dispatcherTypeMatchers(DispatcherType.FORWARD).permitAll()
-                .requestMatchers("/", "/api/**", "/js/**", "/css/**", "/images/**").permitAll()
-                .anyRequest().authenticated()
                 )
                 .exceptionHandling(handling -> handling
                 .authenticationEntryPoint((request, response, authException) -> {
