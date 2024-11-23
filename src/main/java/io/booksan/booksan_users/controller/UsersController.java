@@ -295,9 +295,9 @@ public class UsersController {
         Map<String, Object> response = new HashMap<>();
 
         if (email != null) {
-            
+
             int result = usersService.updateUserImage(usersDTO, email);
-            
+
             if (result == 1) {
                 response.put("status", "success");
                 response.put("message", "프사 수정 성공");
@@ -395,7 +395,7 @@ public class UsersController {
             response.setContentType(imageFileDTO.getImgType());
             response.setContentLength(imageFileDTO.getImgSize());
 
-            InputStream is = new FileInputStream("/Users/Public/download/" + imageFileDTO.getImgUuid());		// 파일 입력 스트림에 파일 데이터 전송
+            InputStream is = new FileInputStream("/home/ubuntu/Downloads/" + imageFileDTO.getImgUuid());		// 파일 입력 스트림에 파일 데이터 전송
             is.transferTo(response.getOutputStream());		// 파일 출력 스트림에 파일 데이터 전송
             is.close();
 
@@ -406,10 +406,10 @@ public class UsersController {
     @GetMapping("/userInfoBy/{email}")
     public ResponseEntity<?> getUserInfoByEmail(@PathVariable("email") String email) {
         UsersVO user = usersService.getUserInfoByEmail(email);
-         if (user != null) {
-             return ResponseEntity.ok(user);
-         } else {
-             return ResponseEntity.notFound().build();
-         }
+        if (user != null) {
+            return ResponseEntity.ok(user);
+        } else {
+            return ResponseEntity.notFound().build();
+        }
     }
 }
