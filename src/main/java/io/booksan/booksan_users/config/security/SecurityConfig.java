@@ -30,6 +30,8 @@ public class SecurityConfig {
     private String chatUrl;
     @Value("${booksan.board}")
     private String boardUrl;
+    @Value("${booksan.front2}")
+    private String front2Url;
 
     private final JWTUtil jwtUtil;
     private final PrincipalDetailsService principalDetailsService;
@@ -55,7 +57,7 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOriginPatterns(Arrays.asList(frontUrl, boardUrl, chatUrl)); // 실제 운영환경에서는 구체적인 도메인 지정 필요
+        configuration.setAllowedOriginPatterns(Arrays.asList(frontUrl, boardUrl, chatUrl, front2Url)); // 실제 운영환경에서는 구체적인 도메인 지정 필요
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(Arrays.asList(
                 "Origin",

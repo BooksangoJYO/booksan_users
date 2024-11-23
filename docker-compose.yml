@@ -4,44 +4,48 @@ services:
   traefik:
     image: traefik:v2.10
     command:
-      - "--log.level=DEBUG"
       - "--api.insecure=true"
       - "--providers.docker=true"
       - "--providers.docker.exposedbydefault=false"
       - "--entrypoints.web.address=:80"
       - "--entrypoints.websecure.address=:443"
-      # HTTP 챌린지 설정
-      - "--certificatesresolvers.myresolver.acme.httpchallenge=true"
-      - "--certificatesresolvers.myresolver.acme.httpchallenge.entrypoint=web"
-      - "--certificatesresolvers.myresolver.acme.email=your@email.com"
+      # SSL 인증서 설정 추가
+      - "--certificatesresolvers.myresolver.acme.tlschallenge=true"
+      - "--certificatesresolvers.myresolver.acme.email=smc970417@email.com"
       - "--certificatesresolvers.myresolver.acme.storage=/letsencrypt/acme.json"
     ports:
-      # AWS EC2에서는 명시적 포트 바인딩
       - "80:80"
       - "443:443"
     volumes:
       - "/var/run/docker.sock:/var/run/docker.sock:ro"
-      - "./letsencrypt:/letsencrypt"
+      - "./letsencrypt:/letsencrypt" # 인증서 저장 경로
     networks:
       - network
 
-  booksan_chat:
+  booksan_users:
     restart: on-failure
     build: .
     deploy:
-      replicas: 2
+      replicas: 1
     labels:
       - "traefik.enable=true"
       - "traefik.http.middlewares.sslheader.headers.customrequestheaders.X-Forwarded-Proto=https"
-      - "traefik.http.routers.chat.rule=Host(`users.booksan.com`)"
+      # WebSocket과 API 설정
+      - "traefik.http.routers.chat.rule=Host(`users.booksan.shop`)"
       - "traefik.http.routers.chat.entrypoints=websecure"
       - "traefik.http.routers.chat.tls=true"
       - "traefik.http.routers.chat.tls.certresolver=myresolver"
       - "traefik.http.services.chat.loadbalancer.server.port=8080"
+      - "traefik.http.middlewares.cors.headers.accesscontrolalloworiginlist=https://www.booksan.shop"
+      - "traefik.http.middlewares.cors.headers.accesscontrolalloworiginlist=https://booksan.shop"
+      - "traefik.http.middlewares.cors.headers.accesscontrolalloworiginlist=https://board.booksan.shop"
+      - "traefik.http.middlewares.cors.headers.accesscontrolalloworiginlist=https://chat.booksan.shop"
     environment:
-      - PORT=8080
+      - PORT=8080  # USE_POST를 PORT로 수정
     networks:
       - network
 
 networks:
   network:
+
+    
