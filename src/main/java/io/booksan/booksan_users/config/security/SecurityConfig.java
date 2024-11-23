@@ -5,6 +5,7 @@ import java.util.Arrays;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -13,8 +14,6 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
-import io.booksan.booksan_users.config.auth.PrincipalDetailsService;
-import io.booksan.booksan_users.config.jwt.JWTUtil;
 import jakarta.servlet.DispatcherType;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -30,21 +29,26 @@ public class SecurityConfig {
     private String chatUrl;
     @Value("${booksan.board}")
     private String boardUrl;
-    @Value("${booksan.front2}")
-    private String front2Url;
-
-    private final JWTUtil jwtUtil;
-    private final PrincipalDetailsService principalDetailsService;
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-        http.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .csrf(csrf -> csrf.disable()).cors(cors -> cors
-                .configurationSource(corsConfigurationSource()))
-                .authorizeHttpRequests(matchers -> matchers.dispatcherTypeMatchers(DispatcherType.FORWARD).permitAll()
-                .requestMatchers("/", "/api/**", "/js/**", "/css/**", "/images/**").permitAll().anyRequest()
-                .authenticated())
-                // 예외 처리 추가
+        http
+                // preflight 요청은 인증을 타지 않도록 먼저 설정
+                .authorizeHttpRequests(matchers -> matchers
+                .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll() // OPTIONS 요청 먼저 허용
+                )
+                .sessionManagement(session -> session
+                .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+                )
+                .csrf(csrf -> csrf.disable())
+                .cors(cors -> cors
+                .configurationSource(corsConfigurationSource())
+                )
+                .authorizeHttpRequests(matchers -> matchers
+                .dispatcherTypeMatchers(DispatcherType.FORWARD).permitAll()
+                .requestMatchers("/", "/api/**", "/js/**", "/css/**", "/images/**").permitAll()
+                .anyRequest().authenticated()
+                )
                 .exceptionHandling(handling -> handling
                 .authenticationEntryPoint((request, response, authException) -> {
                     response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
@@ -57,8 +61,14 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOriginPatterns(Arrays.asList(frontUrl, boardUrl, chatUrl, front2Url)); // 실제 운영환경에서는 구체적인 도메인 지정 필요
+
+        // allowedOriginPatterns 대신 구체적인 origin 설정 시도
+        configuration.setAllowedOrigins(Arrays.asList(frontUrl, boardUrl, chatUrl));
+
+        // OPTIONS 메서드가 확실히 포함되도록
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+
+        // 현재 설정된 헤더는 유지
         configuration.setAllowedHeaders(Arrays.asList(
                 "Origin",
                 "Accept",
@@ -68,11 +78,13 @@ public class SecurityConfig {
                 "Access-Control-Request-Headers",
                 "Authorization"
         ));
+
         configuration.setExposedHeaders(Arrays.asList(
                 "Access-Control-Allow-Origin",
                 "Access-Control-Allow-Credentials",
                 "Authorization"
         ));
+
         configuration.setAllowCredentials(true);
         configuration.setMaxAge(3600L);
 
