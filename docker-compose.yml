@@ -2,6 +2,7 @@ version: "3"
 
 services:
   traefik:
+    container_name: traefik
     image: traefik:v2.10
     command:
       - "--api.insecure=true"
@@ -23,8 +24,9 @@ services:
       - network
 
   booksan_users:
+    container_name: booksan_users_1
     restart: on-failure
-    build: .
+    image: ${USERNAME}/${IMAGE_NAME}:${VERSION}
     deploy:
       replicas: 1
     volumes:
