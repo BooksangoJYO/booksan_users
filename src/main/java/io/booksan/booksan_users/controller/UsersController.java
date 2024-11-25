@@ -273,8 +273,8 @@ public class UsersController {
             // 토큰 검증 및 이메일 추출
             log.info("토큰에서 추출한 이메일: {}", email);
 
-            if (email != null && usersDTO.getEmail().equals(email)) {
-
+            if (email != null) {
+                usersDTO.setEmail(email);
                 usersService.updateUser(mapperUtil.map(usersDTO, UsersVO.class));
 
                 return ResponseEntity.ok(Map.of("status", "success", "message", "정보가 수정되었습니다"));

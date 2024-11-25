@@ -44,7 +44,8 @@ public class TokenCheckFilter extends OncePerRequestFilter {
                 || path.equals("/api/users/checkNickname")
                 || path.equals("/api/users/refresh")
                 || path.startsWith("/api/users/read/download")
-                || path.equals("/api/users/checkToken")) {
+                || path.equals("/api/users/checkToken")
+                || path.startsWith("/api/users/userInfoBy")) {
             filterChain.doFilter(request, response);
             return;
         }

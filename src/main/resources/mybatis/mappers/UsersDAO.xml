@@ -22,7 +22,7 @@
      <update id="updateUser" parameterType="io.booksan.booksan_users.vo.UsersVO">
 	    UPDATE USERS 
 	    SET nickname = #{nickname}
-	    WHERE uid = #{uid}
+	    WHERE email = #{email}
 	 </update>
 
      <update id="updateUserImage">
