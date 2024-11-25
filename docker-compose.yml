@@ -35,7 +35,7 @@ services:
       - "traefik.enable=true"
       - "traefik.http.middlewares.sslheader.headers.customrequestheaders.X-Forwarded-Proto=https"
       # CORS 설정을 하나로 합치기
-      -"traefik.http.middlewares.cors.headers.accesscontrolalloworiginlist=https://www.booksan.shop,https://booksan.shop,https://board.booksan.shop,https://chat.booksan.shop"
+      - "traefik.http.middlewares.cors.headers.accesscontrolalloworiginlist=https://www.booksan.shop,https://booksan.shop,https://board.booksan.shop,https://chat.booksan.shop"
       # CORS 미들웨어 적용
       - "traefik.http.routers.user.middlewares=cors@docker"
       # 추가 CORS 헤더 설정
